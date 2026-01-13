@@ -131,4 +131,4 @@ The MySQL database includes the following tables:
 ```
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the MIT License.# user-studio
