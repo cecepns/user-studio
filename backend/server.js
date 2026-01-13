@@ -131,9 +131,6 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
     const [serviceCount] = await db.execute('SELECT COUNT(*) as count FROM services');
     stats.services = serviceCount[0].count;
 
-    const [requestCount] = await db.execute('SELECT COUNT(*) as count FROM custom_requests');
-    stats.customRequests = requestCount[0].count;
-
     const [revenueResult] = await db.execute('SELECT SUM(total_amount) as total FROM orders WHERE status = "completed"');
     stats.revenue = revenueResult[0].total || 0;
 
@@ -148,7 +145,31 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
 app.get('/api/services', async (req, res) => {
   try {
     const [services] = await db.execute('SELECT * FROM services ORDER BY created_at DESC');
-    res.json(services);
+
+    if (services.length === 0) {
+      return res.json([]);
+    }
+
+    const serviceIds = services.map(s => s.id);
+
+    // Get all images for these services
+    const [images] = await db.execute(
+      `SELECT * FROM service_images WHERE service_id IN (${serviceIds.map(() => '?').join(',')}) ORDER BY sort_order, id`,
+      serviceIds
+    );
+
+    const imagesByService = images.reduce((acc, img) => {
+      if (!acc[img.service_id]) acc[img.service_id] = [];
+      acc[img.service_id].push(img);
+      return acc;
+    }, {});
+
+    const servicesWithImages = services.map(service => ({
+      ...service,
+      images: imagesByService[service.id] || []
+    }));
+
+    res.json(servicesWithImages);
   } catch (error) {
     console.error('Services error:', error);
     res.status(500).json({ message: 'Database error' });
@@ -165,8 +186,16 @@ app.get('/api/services/:id', async (req, res) => {
     if (!service) {
       return res.status(404).json({ message: 'Service not found' });
     }
-    
-    res.json(service);
+
+    const [images] = await db.execute(
+      'SELECT * FROM service_images WHERE service_id = ? ORDER BY sort_order, id',
+      [id]
+    );
+
+    res.json({
+      ...service,
+      images
+    });
   } catch (error) {
     console.error('Service detail error:', error);
     res.status(500).json({ message: 'Database error' });
@@ -174,13 +203,35 @@ app.get('/api/services/:id', async (req, res) => {
 });
 
 app.post('/api/services', authenticateToken, async (req, res) => {
-  const { name, description, base_price, image } = req.body;
+  const { name, description, base_price, image, images } = req.body;
   
   try {
     const [result] = await db.execute(
       'INSERT INTO services (name, description, base_price, image) VALUES (?, ?, ?, ?)',
       [name, description, base_price, image]
     );
+
+    const serviceId = result.insertId;
+
+    // Handle multiple images if provided
+    if (Array.isArray(images) && images.length > 0) {
+      for (let index = 0; index < images.length; index++) {
+        const url = images[index];
+        if (!url) continue;
+
+        await db.execute(
+          'INSERT INTO service_images (service_id, image_url, is_primary, sort_order) VALUES (?, ?, ?, ?)',
+          [serviceId, url, index === 0, index]
+        );
+      }
+    } else if (image) {
+      // Fallback: ensure at least one image entry if single image is provided
+      await db.execute(
+        'INSERT INTO service_images (service_id, image_url, is_primary, sort_order) VALUES (?, ?, ?, ?)',
+        [serviceId, image, true, 0]
+      );
+    }
+
     res.json({ id: result.insertId, message: 'Service created successfully' });
   } catch (error) {
     console.error('Create service error:', error);
@@ -189,7 +240,7 @@ app.post('/api/services', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/services/:id', authenticateToken, async (req, res) => {
-  const { name, description, base_price, image } = req.body;
+  const { name, description, base_price, image, images } = req.body;
   const { id } = req.params;
   
   try {
@@ -201,7 +252,35 @@ app.put('/api/services/:id', authenticateToken, async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Service not found' });
     }
-    
+
+    // If images array is provided, replace existing images for this service
+    if (Array.isArray(images)) {
+      await db.execute('DELETE FROM service_images WHERE service_id = ?', [id]);
+
+      for (let index = 0; index < images.length; index++) {
+        const url = images[index];
+        if (!url) continue;
+
+        await db.execute(
+          'INSERT INTO service_images (service_id, image_url, is_primary, sort_order) VALUES (?, ?, ?, ?)',
+          [id, url, index === 0, index]
+        );
+      }
+    } else if (image) {
+      // Ensure at least one image entry exists if only single image is provided
+      const [existing] = await db.execute(
+        'SELECT COUNT(*) as count FROM service_images WHERE service_id = ?',
+        [id]
+      );
+
+      if (existing[0].count === 0) {
+        await db.execute(
+          'INSERT INTO service_images (service_id, image_url, is_primary, sort_order) VALUES (?, ?, ?, ?)',
+          [id, image, true, 0]
+        );
+      }
+    }
+
     res.json({ message: 'Service updated successfully' });
   } catch (error) {
     console.error('Update service error:', error);
@@ -529,12 +608,15 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/orders', async (req, res) => {
-  const { name, email, phone, address, wedding_date, notes, service_id, service_name, selected_items, total_amount, booking_amount } = req.body;
+  const { name, email, phone, address, wedding_date, shooting_date, notes, service_id, service_name, selected_items, total_amount, booking_amount } = req.body;
   
+  // Backward compatibility: support both wedding_date (lama) dan shooting_date (baru)
+  const bookingDate = shooting_date || wedding_date || null;
+
   try {
     const [result] = await db.execute(
-      'INSERT INTO orders (name, email, phone, address, wedding_date, notes, service_id, service_name, selected_items, total_amount, booking_amount, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, email, phone, address, wedding_date, notes, service_id, service_name, JSON.stringify(selected_items), total_amount, booking_amount || 2000000, 'pending']
+      'INSERT INTO orders (name, email, phone, address, shooting_date, notes, service_id, service_name, selected_items, total_amount, booking_amount, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, phone, address, bookingDate, notes, service_id, service_name, JSON.stringify(selected_items), total_amount, booking_amount || 0, 'pending']
     );
     res.json({ id: result.insertId, message: 'Order created successfully' });
   } catch (error) {
@@ -598,152 +680,6 @@ app.put('/api/orders/:id/booking-amount', authenticateToken, async (req, res) =>
     res.json({ message: 'Booking amount updated successfully' });
   } catch (error) {
     console.error('Update booking amount error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// Custom requests routes
-app.post('/api/custom-requests', async (req, res) => {
-  const { name, email, phone, wedding_date, booking_amount, services, additional_requests } = req.body;
-  
-  // Debug: Log the received data
-  console.log('Received custom request data:', {
-    name, email, phone, wedding_date, booking_amount, services, additional_requests
-  });
-  
-  // Debug: Check for undefined values
-  const fields = { name, email, phone, wedding_date, booking_amount, services, additional_requests };
-  Object.keys(fields).forEach(key => {
-    if (fields[key] === undefined) {
-      console.log(`WARNING: ${key} is undefined`);
-    }
-  });
-  
-  // Validate required fields
-  if (!name || !email || !phone || !wedding_date || 
-      name.trim() === '' || email.trim() === '' || phone.trim() === '' || wedding_date.trim() === '') {
-    return res.status(400).json({ message: 'Missing required fields: name, email, phone, wedding_date' });
-  }
-  
-  // Ensure no undefined values are passed to the database
-  const params = [
-    name || null,
-    email || null,
-    phone || null,
-    wedding_date || null,
-    booking_amount ? parseFloat(booking_amount) : null,
-    services || null,
-    additional_requests || null,
-    'pending' // Set default status to pending
-  ];
-  
-  // Debug: Log the parameters being sent to database
-  console.log('Database parameters:', params);
-  
-  try {
-    const [result] = await db.execute(
-      'INSERT INTO custom_requests (name, email, phone, wedding_date, booking_amount, services, additional_requests, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      params
-    );
-    res.json({ id: result.insertId, message: 'Custom request submitted successfully' });
-  } catch (error) {
-    console.error('Create custom request error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.get('/api/custom-requests', authenticateToken, async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
-    
-    // Get total count
-    const [countResult] = await db.execute('SELECT COUNT(*) as total FROM custom_requests');
-    const total = countResult[0].total;
-    
-    // Get paginated custom requests
-    const [requests] = await db.execute(
-      'SELECT * FROM custom_requests ORDER BY created_at DESC LIMIT ? OFFSET ?',
-      [limit, offset]
-    );
-    
-    res.json({
-      requests,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Custom requests error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.delete('/api/custom-requests/:id', authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  
-  try {
-    const [result] = await db.execute('DELETE FROM custom_requests WHERE id = ?', [id]);
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Custom request not found' });
-    }
-    
-    res.json({ message: 'Custom request deleted successfully' });
-  } catch (error) {
-    console.error('Delete custom request error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.put('/api/custom-requests/:id/booking-amount', authenticateToken, async (req, res) => {
-  const { booking_amount } = req.body;
-  const { id } = req.params;
-  
-  try {
-    const [result] = await db.execute(
-      'UPDATE custom_requests SET booking_amount = ? WHERE id = ?',
-      [booking_amount, id]
-    );
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Custom request not found' });
-    }
-    
-    res.json({ message: 'Booking amount updated successfully' });
-  } catch (error) {
-    console.error('Update booking amount error:', error);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-app.put('/api/custom-requests/:id/status', authenticateToken, async (req, res) => {
-  const { status } = req.body;
-  const { id } = req.params;
-  
-  // Validate status
-  const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ message: 'Invalid status' });
-  }
-  
-  try {
-    const [result] = await db.execute(
-      'UPDATE custom_requests SET status = ? WHERE id = ?',
-      [status, id]
-    );
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Custom request not found' });
-    }
-    
-    res.json({ message: 'Status updated successfully' });
-  } catch (error) {
-    console.error('Update status error:', error);
     res.status(500).json({ message: 'Database error' });
   }
 });
@@ -960,9 +896,19 @@ app.post('/api/gallery/images', authenticateToken, async (req, res) => {
   const { title, description, image_url, category_id, is_featured, sort_order } = req.body;
   
   try {
+    // Convert undefined to null for MySQL compatibility
+    const insertData = {
+      title: title ?? null,
+      description: description ?? null,
+      image_url: image_url ?? null,
+      category_id: category_id ?? null,
+      is_featured: is_featured ?? false,
+      sort_order: sort_order ?? 0
+    };
+    
     const [result] = await db.execute(
       'INSERT INTO gallery_images (title, description, image_url, category_id, is_featured, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
-      [title, description, image_url, category_id, is_featured, sort_order]
+      [insertData.title, insertData.description, insertData.image_url, insertData.category_id, insertData.is_featured, insertData.sort_order]
     );
     res.json({ id: result.insertId, message: 'Gallery image created successfully' });
   } catch (error) {
@@ -976,9 +922,20 @@ app.put('/api/gallery/images/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   
   try {
+    // Convert undefined to null for MySQL compatibility
+    const updateData = {
+      title: title ?? null,
+      description: description ?? null,
+      image_url: image_url ?? null,
+      category_id: category_id ?? null,
+      is_featured: is_featured ?? false,
+      is_active: is_active ?? true,
+      sort_order: sort_order ?? 0
+    };
+    
     const [result] = await db.execute(
       'UPDATE gallery_images SET title = ?, description = ?, image_url = ?, category_id = ?, is_featured = ?, is_active = ?, sort_order = ? WHERE id = ?',
-      [title, description, image_url, category_id, is_featured, is_active, sort_order, id]
+      [updateData.title, updateData.description, updateData.image_url, updateData.category_id, updateData.is_featured, updateData.is_active, updateData.sort_order, id]
     );
     
     if (result.affectedRows === 0) {

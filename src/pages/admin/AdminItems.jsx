@@ -20,7 +20,7 @@ const AdminItems = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/items');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/items');
       const data = await response.json();
       setItems(data);
     } catch (error) {
@@ -30,7 +30,7 @@ const AdminItems = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/items/categories');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/items/categories');
       const data = await response.json();
       setCategories(data);
     } catch (error) {
@@ -41,8 +41,8 @@ const AdminItems = () => {
   const handleItemSubmit = async (itemData) => {
     try {
       const url = itemData.id 
-        ? `https://api-inventory.isavralabel.com/user-wedding/api/items/${itemData.id}`
-        : 'https://api-inventory.isavralabel.com/user-wedding/api/items';
+        ? `https://api-inventory.isavralabel.com/user-studio/api/items/${itemData.id}`
+        : 'https://api-inventory.isavralabel.com/user-studio/api/items';
       
       const method = itemData.id ? 'PUT' : 'POST';
       
@@ -104,7 +104,7 @@ const AdminItems = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/items/${id}`, {
+      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/items/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`

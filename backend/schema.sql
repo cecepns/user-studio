@@ -76,6 +76,18 @@ CREATE TABLE IF NOT EXISTS services (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Service images table (multiple images per service)
+CREATE TABLE IF NOT EXISTS service_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  service_id INT NOT NULL,
+  image_url VARCHAR(500) NOT NULL,
+  is_primary BOOLEAN DEFAULT false,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+);
+
 -- Service items relationship table (many-to-many)
 CREATE TABLE IF NOT EXISTS service_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -115,27 +127,19 @@ CREATE TABLE IF NOT EXISTS orders (
   service_name VARCHAR(255),
   selected_items JSON,
   total_amount DECIMAL(10,2) NOT NULL,
-  booking_amount DECIMAL(10,2) DEFAULT 2000000,
+  booking_amount DECIMAL(10,2) DEFAULT 0,
   status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
 );
 
--- Custom requests table
-CREATE TABLE IF NOT EXISTS custom_requests (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL,
-  phone VARCHAR(50),
-  wedding_date DATE,
-  booking_amount DECIMAL(10,2) DEFAULT 300000,
-  services TEXT,
-  additional_requests TEXT,
-  status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- Ensure booking_amount column exists for older databases
+-- This will fail with "Duplicate column" on newer databases, which is safe to ignore
+ALTER TABLE orders 
+  ADD COLUMN IF NOT EXISTS booking_amount DECIMAL(10,2) DEFAULT 0;
+
+-- Custom requests table has been removed (feature deprecated)
 
 -- Articles table
 CREATE TABLE IF NOT EXISTS articles (
@@ -197,7 +201,7 @@ INSERT IGNORE INTO content_sections (id, section_name, title, subtitle, descript
 (3, 'services_hero_section', 'Wedding Package', '', 'Dari upacara intim hingga perayaan megah, kami menawarkan paket pernikahan komprehensif yang disesuaikan untuk membuat hari spesial Anda sempurna.', '', 'Konsultasi Gratis', '/contact', 3),
 (4, 'custom_service_section', 'Layanan Pernikahan Kustom', 'Buat Sesuai Kebutuhan Anda', 'Buat layanan pernikahan yang sesuai dengan kebutuhan dan budget Anda. Pilih layanan yang Anda inginkan dan kami akan menyesuaikan dengan preferensi Anda untuk menciptakan pernikahan impian yang sempurna.', '', 'Mulai Sekarang', '/custom-service', 4),
 (5, 'gallery_hero_section', 'Galeri Pernikahan', '', 'Jelajahi koleksi pernikahan indah kami dan dapatkan inspirasi untuk hari spesial Anda.', '', 'Lihat Galeri', '/gallery', 5),
-(6, 'about_hero_section', 'Tentang User Wedding', '', 'Kami bersemangat menciptakan momen magis dan mewujudkan impian pernikahan Anda menjadi kenyataan. Dengan pengalaman bertahun-tahun dan perhatian pada detail, kami memastikan hari spesial Anda sempurna.', 'https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=800', '', '', 6),
+(6, 'about_hero_section', 'Tentang User Studio', '', 'Kami bersemangat menciptakan momen magis dan mewujudkan impian pernikahan Anda menjadi kenyataan. Dengan pengalaman bertahun-tahun dan perhatian pada detail, kami memastikan hari spesial Anda sempurna.', 'https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=800', '', '', 6),
 (7, 'about_mission_section', 'Misi Kami', '', 'Menciptakan pengalaman pernikahan luar biasa yang melampaui ekspektasi dan menciptakan kenangan abadi. Kami percaya setiap pasangan layak mendapat perayaan yang unik seperti kisah cinta mereka.', '', '', '', 7),
 (8, 'about_cta_section', 'Siap Mulai Merencanakan?', '', 'Mari ciptakan pernikahan impian Anda bersama. Hubungi kami untuk konsultasi gratis.', '', 'Mulai Hari Ini', '/contact', 8),
 (9, 'home_cta_section', 'Siap Merencanakan Pernikahan Impian Anda?', '', 'Mari mulai menciptakan hari sempurna yang selalu Anda impikan. Hubungi kami untuk konsultasi gratis.', '', 'Booking Konsultasi', '/contact', 9),

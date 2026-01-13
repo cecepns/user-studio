@@ -11,7 +11,7 @@ const Articles = () => {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/articles');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/articles');
       const data = await response.json();
       setArticles(data);
     } catch (error) {
@@ -22,7 +22,7 @@ const Articles = () => {
   return (
     <>
       <Helmet>
-        <title>Artikel & Tips Pernikahan - User Wedding</title>
+        <title>Artikel & Tips Pernikahan - User Studio</title>
         <meta name="description" content="Baca tips perencanaan pernikahan terbaru, tren, dan artikel inspirasi kami." />
       </Helmet>
 

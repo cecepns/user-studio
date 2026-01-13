@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import {
-  Plus,
   ShoppingCart,
   Eye,
   Trash2,
@@ -18,52 +17,43 @@ import jsPDF from "jspdf";
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
-  const [customRequests, setCustomRequests] = useState([]);
-  const [activeTab, setActiveTab] = useState("orders");
   const [ordersPagination, setOrdersPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 0,
   });
-  const [customRequestsPagination, setCustomRequestsPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-  });
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showRequestDetailModal, setShowRequestDetailModal] = useState(false);
   const [showEditBookingModal, setShowEditBookingModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [editingType, setEditingType] = useState(""); // 'order' or 'request'
   const [newBookingAmount, setNewBookingAmount] = useState("");
   const [loading, setLoading] = useState(false);
-  const [customRequestsLoading, setCustomRequestsLoading] = useState(false);
   const [showBankSelectionModal, setShowBankSelectionModal] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [selectedBankMethod, setSelectedBankMethod] = useState(null);
   const [pendingInvoiceItem, setPendingInvoiceItem] = useState(null);
-  const [pendingInvoiceType, setPendingInvoiceType] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [calendarOrders, setCalendarOrders] = useState([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
-    if (activeTab === "orders") {
-      fetchOrders();
-    } else {
-      fetchCustomRequests();
-    }
-  }, [activeTab, ordersPagination.page, customRequestsPagination.page]);
+    fetchOrders();
+  }, [ordersPagination.page]);
 
   useEffect(() => {
     fetchPaymentMethods();
   }, []);
 
+  useEffect(() => {
+    fetchCalendarOrders(calendarMonth);
+  }, [calendarMonth]);
+
   const fetchPaymentMethods = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-wedding/api/payment-methods"
+        "https://api-inventory.isavralabel.com/user-studio/api/payment-methods"
       );
       const data = await response.json();
       setPaymentMethods(data);
@@ -79,7 +69,7 @@ const AdminOrders = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-wedding/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}`,
+        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
@@ -119,11 +109,11 @@ const AdminOrders = () => {
     }
   };
 
-  const fetchCustomRequests = async () => {
-    setCustomRequestsLoading(true);
+  const fetchCalendarOrders = async (monthDate) => {
+    setCalendarLoading(true);
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-wedding/api/custom-requests?page=${customRequestsPagination.page}&limit=${customRequestsPagination.limit}`,
+        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=1&limit=5000`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
@@ -132,41 +122,35 @@ const AdminOrders = () => {
       );
       const data = await response.json();
 
-      // Handle both old format (array) and new format (object with pagination)
-      if (Array.isArray(data)) {
-        // Old format - no pagination
-        setCustomRequests(data);
-        setCustomRequestsPagination((prev) => ({
-          ...prev,
-          total: data.length,
-          totalPages: 1,
-        }));
-      } else {
-        // New format - with pagination
-        setCustomRequests(data.requests || []);
-        setCustomRequestsPagination((prev) => ({
-          ...prev,
-          total: data.pagination?.total || 0,
-          totalPages: data.pagination?.totalPages || 1,
-        }));
-      }
+      const allOrders = Array.isArray(data) ? data : data.orders || [];
+
+      const year = monthDate.getFullYear();
+      const month = monthDate.getMonth();
+
+      const filtered = allOrders.filter((order) => {
+        const rawDate = order.wedding_date || order.shooting_date;
+        if (!rawDate) return false;
+        const d = new Date(rawDate);
+        if (isNaN(d.getTime())) return false;
+        return d.getFullYear() === year && d.getMonth() === month;
+      });
+
+      setCalendarOrders(filtered);
+      setSelectedDate(null);
     } catch (error) {
-      console.error("Error fetching custom requests:", error);
-      setCustomRequests([]);
-      setCustomRequestsPagination((prev) => ({
-        ...prev,
-        total: 0,
-        totalPages: 1,
-      }));
+      console.error("Error fetching calendar orders:", error);
+      setCalendarOrders([]);
+      setSelectedDate(null);
     } finally {
-      setCustomRequestsLoading(false);
+      setCalendarLoading(false);
     }
   };
+
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-wedding/api/orders/${orderId}/status`,
+        `https://api-inventory.isavralabel.com/user-studio/api/orders/${orderId}/status`,
         {
           method: "PUT",
           headers: {
@@ -189,31 +173,6 @@ const AdminOrders = () => {
     }
   };
 
-  const handleCustomRequestStatusUpdate = async (requestId, newStatus) => {
-    try {
-      const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-wedding/api/custom-requests/${requestId}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (response.ok) {
-        fetchCustomRequests();
-        toast.success("Status permintaan kustom berhasil diperbarui!");
-      } else {
-        toast.error("Error memperbarui status permintaan kustom");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error memperbarui status permintaan kustom");
-    }
-  };
 
   const handleDeleteOrder = async (orderId) => {
     const confirmed = await new Promise((resolve) => {
@@ -254,7 +213,7 @@ const AdminOrders = () => {
 
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-wedding/api/orders/${orderId}`,
+        `https://api-inventory.isavralabel.com/user-studio/api/orders/${orderId}`,
         {
           method: "DELETE",
           headers: {
@@ -299,80 +258,55 @@ const AdminOrders = () => {
     setOrdersPagination((prev) => ({ ...prev, page: newPage }));
   };
 
-  const handleCustomRequestsPageChange = (newPage) => {
-    setCustomRequestsPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
-  const handleViewRequestDetail = (request) => {
-    setSelectedRequest(request);
-    setShowRequestDetailModal(true);
-  };
-
-  const handleDeleteCustomRequest = async (requestId) => {
-    const confirmed = await new Promise((resolve) => {
-      toast(
-        (t) => (
-          <div className="flex items-center gap-3">
-            <span>
-              Apakah Anda yakin ingin menghapus permintaan kustom ini?
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  resolve(true);
-                }}
-                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-              >
-                Ya
-              </button>
-              <button
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  resolve(false);
-                }}
-                className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
-              >
-                Tidak
-              </button>
-            </div>
-          </div>
-        ),
-        {
-          duration: Infinity,
-          position: "top-center",
-        }
-      );
+  const changeCalendarMonth = (direction) => {
+    setCalendarMonth((prev) => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() + direction);
+      return newDate;
     });
-
-    if (!confirmed) return;
-
-    try {
-      const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-wedding/api/custom-requests/${requestId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        fetchCustomRequests();
-        toast.success("Permintaan kustom berhasil dihapus!");
-      } else {
-        toast.error("Error menghapus permintaan kustom");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error menghapus permintaan kustom");
-    }
   };
 
-  const handleEditBookingAmount = (item, type) => {
+  const getCalendarDays = () => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const startWeekday = firstDayOfMonth.getDay(); // 0 (Sun) - 6 (Sat)
+
+    const days = [];
+
+    // Leading empty cells for first week
+    for (let i = 0; i < startWeekday; i++) {
+      days.push(null);
+    }
+
+    // Actual days of month
+    for (let d = 1; d <= lastDayOfMonth.getDate(); d++) {
+      days.push(new Date(year, month, d));
+    }
+
+    return days;
+  };
+
+  const bookingsByDate = calendarOrders.reduce((acc, order) => {
+    const rawDate = order.wedding_date || order.shooting_date;
+    if (!rawDate) return acc;
+
+    let key;
+    if (typeof rawDate === "string") {
+      key = rawDate.split("T")[0];
+    } else {
+      key = rawDate.toISOString().slice(0, 10);
+    }
+
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(order);
+    return acc;
+  }, {});
+
+
+  const handleEditBookingAmount = (item) => {
     setEditingItem(item);
-    setEditingType(type);
     setNewBookingAmount(item.booking_amount?.toString() || "");
     setShowEditBookingModal(true);
   };
@@ -384,47 +318,25 @@ const AdminOrders = () => {
     }
 
     try {
-      let response;
-      if (editingType === "order") {
-        response = await fetch(
-          `https://api-inventory.isavralabel.com/user-wedding/api/orders/${editingItem.id}/booking-amount`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
-            },
-            body: JSON.stringify({
-              booking_amount: parseFloat(newBookingAmount),
-            }),
-          }
-        );
-      } else {
-        response = await fetch(
-          `https://api-inventory.isavralabel.com/user-wedding/api/custom-requests/${editingItem.id}/booking-amount`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
-            },
-            body: JSON.stringify({
-              booking_amount: parseFloat(newBookingAmount),
-            }),
-          }
-        );
-      }
+      const response = await fetch(
+        `https://api-inventory.isavralabel.com/user-studio/api/orders/${editingItem.id}/booking-amount`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
+          },
+          body: JSON.stringify({
+            booking_amount: parseFloat(newBookingAmount),
+          }),
+        }
+      );
 
       if (response.ok) {
-        if (editingType === "order") {
-          fetchOrders();
-        } else {
-          fetchCustomRequests();
-        }
+        fetchOrders();
         toast.success("Booking amount berhasil diperbarui!");
         setShowEditBookingModal(false);
         setEditingItem(null);
-        setEditingType("");
         setNewBookingAmount("");
       } else {
         toast.error("Error memperbarui booking amount");
@@ -435,13 +347,12 @@ const AdminOrders = () => {
     }
   };
 
-  const handleGenerateInvoice = (item, type) => {
+  const handleGenerateInvoice = (item) => {
     setPendingInvoiceItem(item);
-    setPendingInvoiceType(type);
     setShowBankSelectionModal(true);
   };
 
-  const generateInvoicePDF = (item, type, selectedBank = null) => {
+  const generateInvoicePDF = (item, selectedBank = null) => {
     const doc = new jsPDF();
 
     // Hitung lebar halaman dan margin
@@ -455,7 +366,7 @@ const AdminOrders = () => {
     // Company header
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("User Wedding Organizer", 20, 20);
+    doc.text("User Studio Organizer", 20, 20);
 
     // Company details
     doc.setFontSize(10);
@@ -486,7 +397,8 @@ const AdminOrders = () => {
       150,
       37
     );
-    doc.text(`Jatuh Tempo: ${formatDate(item.wedding_date)}`, 150, 44);
+    const eventDate = item.wedding_date || item.shooting_date;
+    doc.text(`Jatuh Tempo: ${eventDate ? formatDate(eventDate) : '-'}`, 150, 44);
 
     // Bill To section
     doc.setFontSize(12);
@@ -502,7 +414,7 @@ const AdminOrders = () => {
     // Handle address with text wrapping to prevent breaking
     let addressY = 88;
 
-    if (type === "order" && item.address) {
+    if (item.address) {
       // Use actual usable width (page width minus margins)
       const actualUsableWidth = pageWidth - (margin * 2);
       doc.text(item.address, margin, addressY, { maxWidth: actualUsableWidth });
@@ -515,7 +427,7 @@ const AdminOrders = () => {
     }
 
     // Service table header - adjust based on address length
-    const startY = type === "order" ? addressY + 8 : 110;
+    const startY = item.address ? addressY + 8 : 110;
     doc.setFillColor(52, 152, 219); // Blue background
     doc.rect(20, startY, 170, 8, "F");
 
@@ -534,58 +446,45 @@ const AdminOrders = () => {
     let currentY = startY + 15;
     let itemNumber = 1;
 
-    if (type === "order") {
-      // Main service item (base price)
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(itemNumber.toString(), 25, currentY);
-      doc.text(item.service_name, 40, currentY);
-      doc.text("1", 140, currentY);
-      doc.text(formatRupiah(item.base_price || 0), 170, currentY);
+    // Main service item (base price)
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(itemNumber.toString(), 25, currentY);
+    doc.text(item.service_name, 40, currentY);
+    doc.text("1", 140, currentY);
+    doc.text(formatRupiah(item.base_price || 0), 170, currentY);
 
-      // Selected items as sub-items
-      if (item.selected_items) {
-        try {
-          const selectedItems = JSON.parse(item.selected_items);
-          if (Array.isArray(selectedItems) && selectedItems.length > 0) {
-            currentY += 8;
-            selectedItems.forEach((selectedItem) => {
-              const itemName =
-                selectedItem.name ||
-                selectedItem.item_name ||
-                selectedItem.title ||
-                "Item tidak dikenal";
-              const itemPrice =
-                selectedItem.final_price ||
-                selectedItem.item_price ||
-                selectedItem.price ||
-                selectedItem.custom_price ||
-                0;
+    // Selected items as sub-items
+    if (item.selected_items) {
+      try {
+        const selectedItems = JSON.parse(item.selected_items);
+        if (Array.isArray(selectedItems) && selectedItems.length > 0) {
+          currentY += 8;
+          selectedItems.forEach((selectedItem) => {
+            const itemName =
+              selectedItem.name ||
+              selectedItem.item_name ||
+              selectedItem.title ||
+              "Item tidak dikenal";
+            const itemPrice =
+              selectedItem.final_price ||
+              selectedItem.item_price ||
+              selectedItem.price ||
+              selectedItem.custom_price ||
+              0;
 
-              doc.setFontSize(8);
-              doc.text(`  ${itemName}`, 40, currentY);
-              doc.text("1", 140, currentY);
-              doc.text(formatRupiah(itemPrice), 170, currentY);
-              currentY += 5;
-            });
-          }
-        } catch (error) {
-          console.error("Error parsing selected items:", error);
+            const quantity = selectedItem.quantity || 1;
+            const subtotal = (typeof itemPrice === 'number' ? itemPrice : parseFloat(itemPrice) || 0) * quantity;
+            
+            doc.setFontSize(8);
+            doc.text(`  ${itemName}`, 40, currentY);
+            doc.text(quantity.toString(), 140, currentY);
+            doc.text(formatRupiah(subtotal), 170, currentY);
+            currentY += 5;
+          });
         }
-      }
-    } else {
-      // Custom request
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(itemNumber.toString(), 25, currentY);
-      doc.text("Layanan Kustom", 40, currentY);
-      doc.text("1", 140, currentY);
-      doc.text(formatRupiah(item.booking_amount || 0), 170, currentY);
-
-      if (item.services) {
-        currentY += 8;
-        doc.setFontSize(8);
-        doc.text(`  ${item.services}`, 40, currentY);
+      } catch (error) {
+        console.error("Error parsing selected items:", error);
       }
     }
 
@@ -597,9 +496,7 @@ const AdminOrders = () => {
     doc.text("Total Harga Layanan:", 40, currentY);
     doc.text("", 140, currentY); // Empty quantity
     doc.text(
-      formatRupiah(
-        type === "order" ? item.total_amount || 0 : item.booking_amount || 0
-      ),
+      formatRupiah(item.total_amount || 0),
       170,
       currentY
     );
@@ -612,16 +509,12 @@ const AdminOrders = () => {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(
-      `Harga Layanan: ${formatRupiah(
-        type === "order" ? item.base_price || 0 : item.booking_amount || 0
-      )}`,
+      `Harga Layanan: ${formatRupiah(item.base_price || 0)}`,
       20,
       currentY + 30
     );
     doc.text(
-      `Total Harga Layanan: ${formatRupiah(
-        type === "order" ? item.total_amount || 0 : item.booking_amount || 0
-      )}`,
+      `Total Harga Layanan: ${formatRupiah(item.total_amount || 0)}`,
       20,
       currentY + 37
     );
@@ -633,8 +526,7 @@ const AdminOrders = () => {
     );
     doc.text(
       `Sisa Pembayaran: ${formatRupiah(
-        (type === "order" ? item.total_amount || 0 : item.booking_amount || 0) -
-          (item.booking_amount || 0)
+        (item.total_amount || 0) - (item.booking_amount || 0)
       )}`,
       20,
       currentY + 58
@@ -654,7 +546,7 @@ const AdminOrders = () => {
       item.bank_account_number ||
       "1234567890";
     const bankAccountName =
-      selectedBank?.name || item.bank_account_name || "User Wedding Organizer";
+      selectedBank?.name || item.bank_account_name || "User Studio Organizer";
     doc.text(`Nomor Rekening: ${bankAccountNumber}`, 20, currentY + 75);
     doc.text(`Atas Nama: ${bankAccountName}`, 20, currentY + 82);
 
@@ -694,7 +586,7 @@ const AdminOrders = () => {
     });
 
     // Save the PDF
-    const fileName = `invoice-${type}-${item.id}-${
+    const fileName = `invoice-order-${item.id}-${
       new Date().toISOString().split("T")[0]
     }.pdf`;
     doc.save(fileName);
@@ -714,41 +606,169 @@ const AdminOrders = () => {
             Kelola Pesanan
           </h1>
           <p className="text-gray-600">
-            Lacak dan kelola pesanan pelanggan dan permintaan kustom.
+            Lacak dan kelola pesanan pelanggan.
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6">
-          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setActiveTab("orders")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
-                activeTab === "orders"
-                  ? "bg-white text-primary-700 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <ShoppingCart size={16} />
-              Pesanan Layanan
-            </button>
-            <button
-              onClick={() => setActiveTab("custom")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
-                activeTab === "custom"
-                  ? "bg-white text-primary-700 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Plus size={16} />
-              Permintaan Kustom
-            </button>
+        {/* Booking Calendar */}
+        <div className="mb-8 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Kalender Booking
+                </h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => changeCalendarMonth(-1)}
+                    className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
+                    title="Bulan sebelumnya"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="text-sm font-medium text-gray-700">
+                    {calendarMonth.toLocaleDateString("id-ID", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <button
+                    onClick={() => changeCalendarMonth(1)}
+                    className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
+                    title="Bulan berikutnya"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="grid grid-cols-7 bg-gray-50 text-xs font-semibold text-gray-600">
+                  {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map(
+                    (day) => (
+                      <div
+                        key={day}
+                        className="px-2 py-2 text-center uppercase tracking-wide"
+                      >
+                        {day}
+                      </div>
+                    )
+                  )}
+                </div>
+                <div className="grid grid-cols-7 text-sm">
+                  {calendarLoading ? (
+                    <div className="col-span-7 flex items-center justify-center py-8">
+                      <span className="text-gray-500 text-sm">
+                        Memuat data booking untuk bulan ini...
+                      </span>
+                    </div>
+                  ) : (
+                    getCalendarDays().map((date, index) => {
+                      if (!date) {
+                        return (
+                          <div
+                            key={`empty-${index}`}
+                            className="h-14 border border-gray-100 bg-gray-50"
+                          />
+                        );
+                      }
+
+                      const y = date.getFullYear();
+                      const m = date.getMonth() + 1;
+                      const d = date.getDate();
+                      const key = `${y}-${String(m).padStart(
+                        2,
+                        "0"
+                      )}-${String(d).padStart(2, "0")}`;
+
+                      const ordersForDay = bookingsByDate[key] || [];
+                      const hasBookings = ordersForDay.length > 0;
+                      const isSelected = selectedDate === key;
+
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDate(key);
+                          }}
+                          className={`h-14 border border-gray-100 flex flex-col items-center justify-center relative transition ${
+                            hasBookings
+                              ? "bg-red-50 hover:bg-red-100"
+                              : "hover:bg-gray-50"
+                          } ${isSelected ? "ring-2 ring-primary-500 z-10" : ""}`}
+                        >
+                          <span
+                            className={`text-sm font-medium ${
+                              hasBookings ? "text-red-700" : "text-gray-700"
+                            }`}
+                          >
+                            {d}
+                          </span>
+                          {hasBookings && (
+                            <span className="mt-1 w-2 h-2 rounded-full bg-red-500" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-6">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                {selectedDate
+                  ? `Booking pada ${new Date(
+                      selectedDate
+                    ).toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}`
+                  : "Pilih tanggal untuk melihat booking"}
+              </h3>
+              <div className="max-h-64 overflow-y-auto pr-1 space-y-3">
+                {selectedDate && bookingsByDate[selectedDate] ? (
+                  bookingsByDate[selectedDate].map((order) => (
+                    <div
+                      key={order.id}
+                      className="p-3 rounded-lg border border-gray-200 bg-gray-50"
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-semibold text-gray-800">
+                          {order.name}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(
+                            order.status
+                          )}`}
+                        >
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-1">
+                        {order.service_name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Total: {formatRupiah(order.total_amount)}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    {selectedDate
+                      ? "Tidak ada booking pada tanggal ini."
+                      : "Belum ada tanggal yang dipilih."}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Orders Tab */}
-        {activeTab === "orders" && (
-          <div className="space-y-6">
+        {/* Orders Table */}
+        <div className="space-y-6">
             {/* Orders Table */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="overflow-x-auto">
@@ -819,9 +839,9 @@ const AdminOrders = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {formatDate(order.wedding_date)}
-                            </div>
+                          <div className="text-sm text-gray-900">
+                            {formatDate(order.wedding_date || order.shooting_date)}
+                          </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-bold text-primary-600">
@@ -860,7 +880,7 @@ const AdminOrders = () => {
                               </button>
                               <button
                                 onClick={() =>
-                                  handleEditBookingAmount(order, "order")
+                                  handleEditBookingAmount(order)
                                 }
                                 className="text-green-600 hover:text-green-700 flex items-center gap-1"
                                 title="Edit Booking Amount"
@@ -869,7 +889,7 @@ const AdminOrders = () => {
                               </button>
                               <button
                                 onClick={() =>
-                                  handleGenerateInvoice(order, "order")
+                                  handleGenerateInvoice(order)
                                 }
                                 className="text-purple-600 hover:text-purple-700 flex items-center gap-1"
                                 title="Download Invoice"
@@ -959,225 +979,6 @@ const AdminOrders = () => {
               </div>
             )}
           </div>
-        )}
-
-        {/* Custom Requests Tab */}
-        {activeTab === "custom" && (
-          <div className="space-y-6">
-            {/* Custom Requests Table */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID Permintaan
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Pelanggan
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tanggal Pernikahan
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Booking Amount
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {customRequestsLoading ? (
-                      <tr>
-                        <td
-                          colSpan="6"
-                          className="px-6 py-4 text-center text-gray-500"
-                        >
-                          Memuat data...
-                        </td>
-                      </tr>
-                    ) : customRequests.length > 0 ? (
-                      customRequests.map((request) => (
-                        <tr key={request.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              #{request.id}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {formatDate(request.created_at)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {request.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {request.email}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {request.phone}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {formatDate(request.wedding_date)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-bold text-primary-600">
-                              {formatRupiah(request.booking_amount)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                                request.status
-                              )}`}
-                            >
-                              {request.status || "pending"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-3">
-                              <select
-                                value={request.status || "pending"}
-                                onChange={(e) =>
-                                  handleCustomRequestStatusUpdate(
-                                    request.id,
-                                    e.target.value
-                                  )
-                                }
-                                className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                              </select>
-                              <button
-                                onClick={() => handleViewRequestDetail(request)}
-                                className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                                title="Lihat Detail"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleEditBookingAmount(request, "request")
-                                }
-                                className="text-green-600 hover:text-green-700 flex items-center gap-1"
-                                title="Edit Booking Amount"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleGenerateInvoice(request, "request")
-                                }
-                                className="text-purple-600 hover:text-purple-700 flex items-center gap-1"
-                                title="Download Invoice"
-                              >
-                                <Download size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteCustomRequest(request.id)
-                                }
-                                className="text-red-600 hover:text-red-700 flex items-center gap-1"
-                                title="Hapus"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="6"
-                          className="px-6 py-4 text-center text-gray-500"
-                        >
-                          Tidak ada permintaan kustom
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Custom Requests Pagination */}
-            {customRequestsPagination.totalPages > 1 && (
-              <div className="flex items-center justify-between bg-white px-6 py-3 border-t border-gray-200">
-                <div className="flex items-center text-sm text-gray-700">
-                  <span>
-                    Menampilkan{" "}
-                    {(customRequestsPagination.page - 1) *
-                      customRequestsPagination.limit +
-                      1}{" "}
-                    -{" "}
-                    {Math.min(
-                      customRequestsPagination.page *
-                        customRequestsPagination.limit,
-                      customRequestsPagination.total
-                    )}{" "}
-                    dari {customRequestsPagination.total} permintaan
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() =>
-                      handleCustomRequestsPageChange(
-                        customRequestsPagination.page - 1
-                      )
-                    }
-                    disabled={customRequestsPagination.page === 1}
-                    className="px-3 py-1 rounded-md text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-
-                  {Array.from(
-                    { length: customRequestsPagination.totalPages },
-                    (_, i) => i + 1
-                  ).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => handleCustomRequestsPageChange(page)}
-                      className={`px-3 py-1 rounded-md text-sm font-medium ${
-                        page === customRequestsPagination.page
-                          ? "bg-primary-600 text-white"
-                          : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={() =>
-                      handleCustomRequestsPageChange(
-                        customRequestsPagination.page + 1
-                      )
-                    }
-                    disabled={
-                      customRequestsPagination.page ===
-                      customRequestsPagination.totalPages
-                    }
-                    className="px-3 py-1 rounded-md text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Order Detail Modal */}
         {showDetailModal && selectedOrder && (
@@ -1245,7 +1046,7 @@ const AdminOrders = () => {
                           Tanggal Pernikahan:
                         </span>
                         <p className="text-gray-900">
-                          {formatDate(selectedOrder.wedding_date)}
+                          {formatDate(selectedOrder.wedding_date || selectedOrder.shooting_date)}
                         </p>
                       </div>
                       <div>
@@ -1313,16 +1114,27 @@ const AdminOrders = () => {
                             item.price ||
                             item.custom_price ||
                             0;
+                          const quantity = item.quantity || 1;
+                          const subtotal = (typeof itemPrice === 'number' ? itemPrice : parseFloat(itemPrice) || 0) * quantity;
 
                           return (
                             <div
                               key={index}
                               className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
                             >
-                              <span className="text-gray-900">{itemName}</span>
-                              <span className="font-medium text-primary-600">
-                                {formatRupiah(itemPrice)}
+                              <span className="text-gray-900">
+                                {itemName} {quantity > 1 && <span className="text-gray-500">(x{quantity})</span>}
                               </span>
+                              <div className="text-right">
+                                {quantity > 1 && (
+                                  <div className="text-xs text-gray-500">
+                                    {formatRupiah(itemPrice)} × {quantity}
+                                  </div>
+                                )}
+                                <span className="font-medium text-primary-600">
+                                  {formatRupiah(subtotal)}
+                                </span>
+                              </div>
                             </div>
                           );
                         });
@@ -1398,161 +1210,6 @@ const AdminOrders = () => {
           </div>
         )}
 
-        {/* Custom Request Detail Modal */}
-        {showRequestDetailModal && selectedRequest && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center p-6 border-b border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Detail Permintaan Kustom #{selectedRequest.id}
-                </h2>
-                <button
-                  onClick={() => setShowRequestDetailModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="p-6">
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      Informasi Pelanggan
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <span className="font-medium text-gray-700">Nama:</span>
-                        <p className="text-gray-900">{selectedRequest.name}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Email:
-                        </span>
-                        <p className="text-gray-900">{selectedRequest.email}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Telepon:
-                        </span>
-                        <p className="text-gray-900">{selectedRequest.phone}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      Informasi Pernikahan
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Tanggal Pernikahan:
-                        </span>
-                        <p className="text-gray-900">
-                          {formatDate(selectedRequest.wedding_date)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Booking Amount:
-                        </span>
-                        <p className="text-2xl font-bold text-primary-600">
-                          {formatRupiah(selectedRequest.booking_amount)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Tanggal Permintaan:
-                        </span>
-                        <p className="text-gray-900">
-                          {formatDate(selectedRequest.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Layanan yang Diminta
-                  </h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-gray-700">{selectedRequest.services}</p>
-                  </div>
-                </div>
-
-                {selectedRequest.additional_requests && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                      Permintaan Tambahan
-                    </h3>
-                    <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
-                      {selectedRequest.additional_requests}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={() => setShowRequestDetailModal(false)}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Tutup
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const confirmed = await new Promise((resolve) => {
-                        toast(
-                          (t) => (
-                            <div className="flex items-center gap-3">
-                              <span>
-                                Apakah Anda yakin ingin menghapus permintaan
-                                kustom ini?
-                              </span>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    toast.dismiss(t.id);
-                                    resolve(true);
-                                  }}
-                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                                >
-                                  Ya
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    toast.dismiss(t.id);
-                                    resolve(false);
-                                  }}
-                                  className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
-                                >
-                                  Tidak
-                                </button>
-                              </div>
-                            </div>
-                          ),
-                          {
-                            duration: Infinity,
-                            position: "top-center",
-                          }
-                        );
-                      });
-
-                      if (confirmed) {
-                        await handleDeleteCustomRequest(selectedRequest.id);
-                        setShowRequestDetailModal(false);
-                      }
-                    }}
-                    className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Hapus Permintaan
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Edit Booking Amount Modal */}
         {showEditBookingModal && editingItem && (
@@ -1566,7 +1223,6 @@ const AdminOrders = () => {
                   onClick={() => {
                     setShowEditBookingModal(false);
                     setEditingItem(null);
-                    setEditingType("");
                     setNewBookingAmount("");
                   }}
                   className="text-gray-400 hover:text-gray-600"
@@ -1594,7 +1250,6 @@ const AdminOrders = () => {
                     onClick={() => {
                       setShowEditBookingModal(false);
                       setEditingItem(null);
-                      setEditingType("");
                       setNewBookingAmount("");
                     }}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -1625,7 +1280,6 @@ const AdminOrders = () => {
                   onClick={() => {
                     setShowBankSelectionModal(false);
                     setPendingInvoiceItem(null);
-                    setPendingInvoiceType("");
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -1679,7 +1333,6 @@ const AdminOrders = () => {
                     onClick={() => {
                       setShowBankSelectionModal(false);
                       setPendingInvoiceItem(null);
-                      setPendingInvoiceType("");
                     }}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
@@ -1687,15 +1340,13 @@ const AdminOrders = () => {
                   </button>
                   <button
                     onClick={() => {
-                      if (pendingInvoiceItem && pendingInvoiceType) {
+                      if (pendingInvoiceItem) {
                         generateInvoicePDF(
                           pendingInvoiceItem,
-                          pendingInvoiceType,
                           selectedBankMethod
                         );
                         setShowBankSelectionModal(false);
                         setPendingInvoiceItem(null);
-                        setPendingInvoiceType("");
                       }
                     }}
                     className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"

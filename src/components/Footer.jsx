@@ -9,7 +9,7 @@ const Footer = () => {
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <div>
-                <span className=" text-2xl font-bold">User Wedding</span>
+                <span className=" text-2xl font-bold">User Studio</span>
                 <p className="text-sm text-gray-400">PT User Wedding Organizer</p>
               </div>
             </div>
@@ -60,7 +60,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 PT User Wedding Organizer. Semua hak dilindungi.</p>
+          <p>&copy; 2025 PT User Studio Organizer. Semua hak dilindungi.</p>
         </div>
       </div>
     </footer>

@@ -20,7 +20,7 @@ const Contact = () => {
 
   const fetchHeroContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/content-sections/contact_hero_section');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/contact_hero_section');
       if (response.ok) {
         const data = await response.json();
         setHeroContent(data);
@@ -41,7 +41,7 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/contact', {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,8 +64,8 @@ const Contact = () => {
   return (
     <>
       <Helmet>
-        <title>Hubungi Kami - User Wedding</title>
-        <meta name="description" content="Hubungi User Wedding untuk kebutuhan perencanaan pernikahan Anda. Booking konsultasi hari ini." />
+        <title>Hubungi Kami - User Studio</title>
+        <meta name="description" content="Hubungi User Studio untuk kebutuhan perencanaan pernikahan Anda. Booking konsultasi hari ini." />
       </Helmet>
 
       <div className="pt-20">

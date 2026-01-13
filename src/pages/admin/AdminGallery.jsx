@@ -38,8 +38,8 @@ const AdminGallery = () => {
   const fetchImages = async () => {
     try {
       const url = selectedCategory === 'all' 
-        ? 'https://api-inventory.isavralabel.com/user-wedding/api/gallery/images'
-        : `https://api-inventory.isavralabel.com/user-wedding/api/gallery/images?category_id=${selectedCategory}`;
+        ? 'https://api-inventory.isavralabel.com/user-studio/api/gallery/images'
+        : `https://api-inventory.isavralabel.com/user-studio/api/gallery/images?category_id=${selectedCategory}`;
       
       const response = await fetch(url, {
         headers: {
@@ -55,7 +55,7 @@ const AdminGallery = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/gallery/categories', {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/gallery/categories', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }
@@ -72,8 +72,8 @@ const AdminGallery = () => {
     
     try {
       const url = editingImage 
-        ? `https://api-inventory.isavralabel.com/user-wedding/api/gallery/images/${editingImage.id}`
-        : 'https://api-inventory.isavralabel.com/user-wedding/api/gallery/images';
+        ? `https://api-inventory.isavralabel.com/user-studio/api/gallery/images/${editingImage.id}`
+        : 'https://api-inventory.isavralabel.com/user-studio/api/gallery/images';
       
       const method = editingImage ? 'PUT' : 'POST';
       
@@ -113,8 +113,8 @@ const AdminGallery = () => {
     
     try {
       const url = editingCategory 
-        ? `https://api-inventory.isavralabel.com/user-wedding/api/gallery/categories/${editingCategory.id}`
-        : 'https://api-inventory.isavralabel.com/user-wedding/api/gallery/categories';
+        ? `https://api-inventory.isavralabel.com/user-studio/api/gallery/categories/${editingCategory.id}`
+        : 'https://api-inventory.isavralabel.com/user-studio/api/gallery/categories';
       
       const method = editingCategory ? 'PUT' : 'POST';
       
@@ -181,7 +181,7 @@ const AdminGallery = () => {
     if (!confirmed) return;
     
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/gallery/images/${id}`, {
+      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/gallery/images/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
@@ -235,7 +235,7 @@ const AdminGallery = () => {
     if (!confirmed) return;
     
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/gallery/categories/${id}`, {
+      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/gallery/categories/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`

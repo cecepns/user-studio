@@ -22,7 +22,8 @@ const calculateTotalPrice = (items, basePrice = 0) => {
   const itemsTotal = items.reduce((total, item) => {
     const price = item.final_price || item.item_price || item.price;
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return total + (isNaN(numPrice) ? 0 : numPrice);
+    const quantity = item.quantity || 1; // Default quantity is 1
+    return total + (isNaN(numPrice) ? 0 : numPrice * quantity);
   }, 0);
   
   // Fix floating point precision by rounding to nearest integer
@@ -37,7 +38,7 @@ const ServiceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]); // Array of { id, name, price, quantity, ... }
   const [orderData, setOrderData] = useState(null);
   const [buttonContent, setButtonContent] = useState(null);
 
@@ -55,17 +56,17 @@ const ServiceDetail = () => {
   const fetchServiceData = async () => {
     try {
       // Fetch service details
-      const serviceResponse = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/services/${id}`);
+      const serviceResponse = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/services/${id}`);
       const serviceData = await serviceResponse.json();
       setService(serviceData);
 
       // Fetch service items
-      const itemsResponse = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/services/${id}/items`);
+      const itemsResponse = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/services/${id}/items`);
       const itemsData = await itemsResponse.json();
       setItems(itemsData);
 
       // Fetch service features
-      const featuresResponse = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/service-features`);
+      const featuresResponse = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/service-features`);
       const featuresData = await featuresResponse.json();
       setFeatures(featuresData);
       // Don't auto-select items - start with empty selection
@@ -78,7 +79,7 @@ const ServiceDetail = () => {
 
   const fetchButtonContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/content-sections/button_item_detail');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/button_item_detail');
       if (response.ok) {
         const data = await response.json();
         setButtonContent(data);
@@ -94,9 +95,29 @@ const ServiceDetail = () => {
       if (exists) {
         return prev.filter(i => i.id !== item.id);
       } else {
-        return [...prev, item];
+        // Add item with default quantity of 1
+        return [...prev, { ...item, quantity: 1 }];
       }
     });
+  };
+
+  const handleQuantityChange = (itemId, newQuantity) => {
+    // Izinkan input kosong saat user sedang mengetik
+    if (newQuantity === '') {
+      setSelectedItems(prev =>
+        prev.map(item =>
+          item.id === itemId ? { ...item, quantity: '' } : item
+        )
+      );
+      return;
+    }
+
+    const quantity = Math.max(1, parseInt(newQuantity, 10) || 1); // Minimum 1
+    setSelectedItems(prev =>
+      prev.map(item =>
+        item.id === itemId ? { ...item, quantity } : item
+      )
+    );
   };
 
   const handleSelectAll = () => {
@@ -104,8 +125,8 @@ const ServiceDetail = () => {
       // If all items are selected, deselect all
       setSelectedItems([]);
     } else {
-      // Select all items
-      setSelectedItems([...items]);
+      // Select all items with default quantity of 1
+      setSelectedItems(items.map(item => ({ ...item, quantity: 1 })));
     }
   };
 
@@ -137,7 +158,7 @@ const ServiceDetail = () => {
   return (
     <>
       <Helmet>
-        <title>{service.name} - User Wedding</title>
+        <title>{service.name} - User Studio</title>
         <meta name="description" content={service.description} />
       </Helmet>
 
@@ -179,9 +200,15 @@ const ServiceDetail = () => {
               <div className="relative" data-aos="fade-left" data-aos-delay="300">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary-200 to-secondary-200 rounded-full blur-3xl opacity-30 animate-float"></div>
                 <img
-                  src={service.image || `https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=800`}
+                  src={
+                    (Array.isArray(service.images) && service.images.length > 0
+                      ? service.images[0]?.image_url
+                      : null) ||
+                    service.image ||
+                    `https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=800`
+                  }
                   alt={service.name}
-                  className="relative z-10 w-full h-64 sm:h-80 lg:h-96 object-cover rounded-2xl shadow-2xl"
+                  className="relative z-10 w-full h-64 sm:h-80 lg:h-[450px] object-cover rounded-2xl shadow-2xl"
                 />
               </div>
             </div>
@@ -194,6 +221,32 @@ const ServiceDetail = () => {
             <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
               {/* Main Content */}
               <div className="lg:col-span-2">
+                {/* Additional Service Images */}
+                {Array.isArray(service.images) && service.images.length > 1 && (
+                  <div className="mb-12" data-aos="fade-up">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
+                      Galeri Layanan
+                    </h2>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {service.images.slice(1).map((img, index) => (
+                        <div
+                          key={img.id || index}
+                          className="relative overflow-hidden rounded-xl shadow-md group"
+                        >
+                          <img
+                            src={img.image_url}
+                            alt={`${service.name} - gambar ${index + 2}`}
+                            className="w-full h-40 sm:h-48 object-cover transform group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mb-12" data-aos="fade-up">
                   <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
                     Detail Layanan
@@ -247,16 +300,33 @@ const ServiceDetail = () => {
                               <div className="text-xl sm:text-2xl font-bold text-white mb-2">
                                 {formatPrice(item.final_price || item.item_price || item.price)}
                               </div>
-                              <button
-                                onClick={() => handleItemToggle(item)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                  selectedItems.find(i => i.id === item.id)
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                              >
-                                {selectedItems.find(i => i.id === item.id) ? 'Dipilih' : 'Pilih'}
-                              </button>
+                              {selectedItems.find(i => i.id === item.id) ? (
+                                <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-white text-sm">Jumlah:</label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={selectedItems.find(i => i.id === item.id)?.quantity ?? ''}
+                                      onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                                      className="w-16 px-2 py-1 rounded text-sm text-gray-900 text-center"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => handleItemToggle(item)}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleItemToggle(item)}
+                                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                >
+                                  Pilih
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -308,12 +378,19 @@ const ServiceDetail = () => {
                         {selectedItems.length > 0 && (
                           <>
                             <div className="text-sm text-gray-600 mb-2">Item Tambahan:</div>
-                            {selectedItems.map((item, index) => (
-                              <div key={item.id} className="flex justify-between items-center text-sm mb-1">
-                                <span className="text-gray-700">{index + 1}. {item.name}</span>
-                                <span className="font-medium">{formatPrice(item.final_price || item.item_price || item.price)}</span>
-                              </div>
-                            ))}
+                            {selectedItems.map((item, index) => {
+                              const itemPrice = item.final_price || item.item_price || item.price;
+                              const quantity = item.quantity || 1;
+                              const subtotal = (typeof itemPrice === 'string' ? parseFloat(itemPrice) : itemPrice) * quantity;
+                              return (
+                                <div key={item.id} className="flex justify-between items-center text-sm mb-1">
+                                  <span className="text-gray-700">
+                                    {index + 1}. {item.name} {quantity > 1 && `(x${quantity})`}
+                                  </span>
+                                  <span className="font-medium">{formatPrice(subtotal)}</span>
+                                </div>
+                              );
+                            })}
                           </>
                         )}
                         <div className="border-t pt-2 mt-2">
@@ -322,15 +399,6 @@ const ServiceDetail = () => {
                             <span className="font-medium text-gray-700">
                               {formatPrice(calculateTotalPrice(selectedItems, service.base_price))}
                             </span>
-                          </div>
-                          <div className="flex flex-col font-bold text-lg">
-                            <span>Total Pembayaran Booking:</span>
-                            <span className="text-lg sm:text-xl text-primary-600">
-                              {formatPrice(2000000)}
-                            </span>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Minimal Rp 2.000.000, bisa lebih
-                            </p>
                           </div>
                         </div>
                       </div>
@@ -426,7 +494,7 @@ const PaymentInstructionsModal = ({ orderData, onClose }) => {
   //   // Company header
   //   doc.setFontSize(16);
   //   doc.setFont('helvetica', 'bold');
-  //   doc.text('User Wedding Organizer', 20, 20);
+  //   doc.text('User Studio Organizer', 20, 20);
     
   //   // Company details
   //   doc.setFontSize(10);
@@ -580,7 +648,7 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
     phone: '',
     address: '',
     wedding_date: '',
-    booking_amount: 2000000,
+    booking_amount: 0,
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -602,6 +670,8 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
       const totalAmount = calculateTotalPrice(selectedItems, service.base_price);
       const orderData = {
         ...formData,
+        // Kirim kedua field untuk kompatibilitas backend lama/baru
+        shooting_date: formData.wedding_date,
         service_id: service.id,
         service_name: service.name,
         base_price: service.base_price,
@@ -610,7 +680,7 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
         booking_amount: parseFloat(formData.booking_amount)
       };
       
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/orders', {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -721,19 +791,18 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah Booking (Minimal Rp 2.000.000)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah Booking</label>
                     <input
                       type="number"
                       name="booking_amount"
                       value={formData.booking_amount}
                       onChange={handleInputChange}
-                      min="2000000"
                       step="100000"
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Minimal booking Rp 2.000.000, bisa lebih sesuai kebutuhan
+                      Silakan isi jumlah booking (uang muka) sesuai kesepakatan.
                     </p>
                   </div>
 
@@ -763,32 +832,39 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
                     {selectedItems.length > 0 && (
                       <div className="space-y-2 mb-4">
                         <h6 className="font-medium text-gray-700">Item Tambahan:</h6>
-                        {selectedItems.map((item, index) => (
-                          <div key={item.id} className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">{index + 1}. {item.name}</span>
-                            <span className="font-medium">{formatPrice(item.final_price || item.item_price || item.price)}</span>
-                          </div>
-                        ))}
+                        {selectedItems.map((item, index) => {
+                          const itemPrice = item.final_price || item.item_price || item.price;
+                          const quantity = item.quantity || 1;
+                          const subtotal = (typeof itemPrice === 'string' ? parseFloat(itemPrice) : itemPrice) * quantity;
+                          return (
+                            <div key={item.id} className="flex justify-between items-center text-sm">
+                              <span className="text-gray-600">
+                                {index + 1}. {item.name} {quantity > 1 && `(x${quantity})`}
+                              </span>
+                              <span className="font-medium">{formatPrice(subtotal)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     
-                    <div className="border-t pt-3">
-                      <div className="flex justify-between items-center text-sm mb-2">
-                        <span>Total Harga Layanan:</span>
-                        <span className="font-medium text-gray-700">
-                          {formatPrice(calculateTotalPrice(selectedItems, service.base_price))}
-                        </span>
+                      <div className="border-t pt-3">
+                        <div className="flex justify-between items-center text-sm mb-2">
+                          <span>Total Harga Layanan:</span>
+                          <span className="font-medium text-gray-700">
+                            {formatPrice(calculateTotalPrice(selectedItems, service.base_price))}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center font-bold text-lg">
+                          <span>Total Pembayaran Booking:</span>
+                          <span className="text-primary-600">
+                            {formatPrice(parseFloat(formData.booking_amount || 0) || 0)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Jumlah booking adalah uang muka yang akan dikonfirmasi bersama admin.
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center font-bold text-lg">
-                        <span>Total Pembayaran Booking:</span>
-                        <span className="text-primary-600">
-                          {formatPrice(2000000)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Minimal Rp 2.000.000, bisa lebih sesuai kebutuhan
-                      </p>
-                    </div>
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -798,7 +874,7 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
                       <li>• Konsultasi gratis sebelum pemesanan</li>
                       <li>• Garansi kepuasan 100%</li>
                       <li>• Tim support 24/7</li>
-                      <li>• Transfer minimal Rp 2.000.000 untuk booking</li>
+                      <li>• Transfer sesuai jumlah booking (uang muka) yang disepakati</li>
                     </ul>
                   </div>
 
@@ -806,13 +882,13 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <h6 className="font-semibold text-red-800 mb-2">⚠️ Persyaratan Booking</h6>
                     <p className="text-sm text-red-700 mb-2">
-                      Untuk melakukan booking, Anda harus melakukan transfer <strong>minimal Rp 2.000.000</strong> terlebih dahulu. 
+                      Untuk melakukan booking, silakan lakukan transfer sesuai jumlah booking (uang muka) yang telah disepakati. 
                       Pembayaran akan dikonfirmasi dalam 1x24 jam setelah transfer dilakukan.
                     </p>
                     <p className="text-xs text-red-600">
                       <strong>Catatan:</strong> Total harga layanan adalah {formatPrice(calculateTotalPrice(selectedItems, service.base_price))}. 
                       {selectedItems.length > 0 ? 'Paket lengkap dengan semua item terpilih.' : ''} 
-                      Pembayaran minimal Rp 2.000.000 adalah uang muka untuk booking. Sisa pembayaran dapat diselesaikan sesuai kesepakatan.
+                      Pembayaran booking adalah uang muka untuk booking. Sisa pembayaran dapat diselesaikan sesuai kesepakatan.
                     </p>
                   </div>
                 </div>

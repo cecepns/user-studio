@@ -4,11 +4,17 @@ import { Link } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import heroImage from "../assets/hero-banner.jpg";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
 
 const Home = () => {
   const [heroContent, setHeroContent] = useState(null);
   const [servicesContent, setServicesContent] = useState(null);
-  const [serviceCards, setServiceCards] = useState([]);
+  const [services, setServices] = useState([]);
+  const [galleryContent, setGalleryContent] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
   const [ctaContent, setCtaContent] = useState(null);
 
   useEffect(() => {
@@ -21,13 +27,15 @@ const Home = () => {
     
     fetchHeroContent();
     fetchServicesContent();
-    fetchServiceCards();
+    fetchServices();
+    fetchGalleryContent();
+    fetchGalleryImages();
     fetchCtaContent();
   }, []);
 
   const fetchHeroContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/content-sections/hero_section');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/hero_section');
       if (response.ok) {
         const data = await response.json();
         setHeroContent(data);
@@ -39,7 +47,7 @@ const Home = () => {
 
   const fetchServicesContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/content-sections/services_preview_section');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/services_preview_section');
       if (response.ok) {
         const data = await response.json();
         setServicesContent(data);
@@ -49,21 +57,52 @@ const Home = () => {
     }
   };
 
-  const fetchServiceCards = async () => {
+  const fetchServices = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/service-cards?card_type=service');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/services');
       if (response.ok) {
         const data = await response.json();
-        setServiceCards(data);
+        setServices(data);
       }
     } catch (error) {
-      console.error('Error fetching service cards:', error);
+      console.error('Error fetching services:', error);
+    }
+  };
+
+  const formatPrice = (price) => {
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "Rp 0";
+    return `Rp ${numPrice.toLocaleString("id-ID")}`;
+  };
+
+  const fetchGalleryContent = async () => {
+    try {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/gallery_section');
+      if (response.ok) {
+        const data = await response.json();
+        setGalleryContent(data);
+      }
+    } catch (error) {
+      console.error('Error fetching gallery content:', error);
+    }
+  };
+
+  const fetchGalleryImages = async () => {
+    try {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/gallery/images?featured=true');
+      if (response.ok) {
+        const data = await response.json();
+        // Limit to 6 images for homepage preview
+        setGalleryImages(data.slice(0, 6));
+      }
+    } catch (error) {
+      console.error('Error fetching gallery images:', error);
     }
   };
 
   const fetchCtaContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/content-sections/home_cta_section');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/home_cta_section');
       if (response.ok) {
         const data = await response.json();
         setCtaContent(data);
@@ -76,10 +115,10 @@ const Home = () => {
   return (
     <>
       <Helmet>
-        <title>User Wedding - Hari Pernikahan Sempurna Anda Menanti</title>
+        <title>User Studio - Hari Pernikahan Sempurna Anda Menanti</title>
         <meta
           name="description"
-          content="Ciptakan momen magis dengan User Wedding. Layanan perencanaan pernikahan profesional untuk membuat hari spesial Anda tak terlupakan."
+          content="Ciptakan momen magis dengan User Studio. Layanan perencanaan pernikahan profesional untuk membuat hari spesial Anda tak terlupakan."
         />
         <meta
           name="keywords"
@@ -139,7 +178,7 @@ const Home = () => {
         <div className="container-custom">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className=" text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
-              Mengapa Memilih User Wedding?
+              Mengapa Memilih User Studio?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Kami membawa pengalaman bertahun-tahun dan passion untuk membuat
@@ -197,82 +236,179 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12 max-w-4xl mx-auto" data-aos="fade-up">
-            {serviceCards.length > 0 ? (
-              serviceCards.map((card) => (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 max-w-6xl mx-auto" data-aos="fade-up">
+            {services.length > 0 ? (
+              services.map((service, index) => (
                 <div
-                  key={card.id}
-                  className="bg-[#f0f8ff] rounded-2xl shadow-lg overflow-hidden card-hover border border-gray-100"
+                  key={service.id}
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden card-hover border border-gray-100"
+                  data-aos="fade-up"
+                  data-aos-delay={index * 100}
                 >
-                  <div className="p-8 text-center">
-                    <div className="text-6xl mb-6">{card.icon}</div>
-                    <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                      {card.title}
+                  <div className="relative">
+                    {Array.isArray(service.images) && service.images.length > 1 ? (
+                      <Swiper
+                        modules={[Navigation]}
+                        navigation={{
+                          prevEl: `.service-prev-${service.id}`,
+                          nextEl: `.service-next-${service.id}`,
+                        }}
+                        loop={true}
+                        className="w-full h-96 md:h-96"
+                      >
+                        {service.images.map((img, imgIndex) => (
+                          <SwiperSlide key={img.id || imgIndex}>
+                            <img
+                              src={
+                                img.image_url ||
+                                service.image ||
+                                `https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=400`
+                              }
+                              alt={`${service.name} - gambar ${imgIndex + 1}`}
+                              className="w-full h-96 md:h-96 object-cover"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                              }}
+                            />
+                          </SwiperSlide>
+                        ))}
+                      </Swiper>
+                    ) : (
+                      <img
+                        src={
+                          (Array.isArray(service.images) && service.images.length > 0
+                            ? service.images[0]?.image_url
+                            : null) ||
+                          service.image ||
+                          `https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=400`
+                        }
+                        alt={service.name}
+                        className="w-full h-96 md:h-96 object-cover"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    )}
+
+                    {/* Custom navigation buttons */}
+                    {Array.isArray(service.images) && service.images.length > 1 && (
+                      <>
+                        <button
+                          className={`service-prev-${service.id} absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 rounded-full w-9 h-9 flex items-center justify-center shadow-lg border border-gray-200 transition`}
+                        >
+                          <span className="sr-only">Sebelumnya</span>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.8}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                          </svg>
+                        </button>
+                        <button
+                          className={`service-next-${service.id} absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 rounded-full w-9 h-9 flex items-center justify-center shadow-lg border border-gray-200 transition`}
+                        >
+                          <span className="sr-only">Berikutnya</span>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.8}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+
+                    <div className="absolute bottom-2 left-2 px-4 py-1 rounded-full bg-white text-blue-600 text-xs font-semibold">
+                      Mulai dari {formatPrice(service.base_price)}
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+                      {service.name}
                     </h3>
-                    <p className="text-gray-600 mb-6">
-                      {card.description}
-                    </p>
                     <Link
-                      to={card.button_url}
+                      to={`/services/${service.id}`}
                       className="w-full text-center block btn-primary font-medium"
                     >
-                      {card.button_text}
+                      Lihat Detail →
                     </Link>
                   </div>
                 </div>
               ))
             ) : (
-              <>
-                {/* Fallback Wedding Package Card */}
-                <div
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden card-hover border border-gray-100"
-                  data-aos="fade-up"
-                  data-aos-delay="300"
-                >
-                  <div className="p-8 text-center">
-                    <div className="text-6xl mb-6">💒</div>
-                    <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                      Wedding Package
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      Pilih dari berbagai paket pernikahan yang sudah kami siapkan
-                      dengan harga terjangkau dan layanan lengkap
-                    </p>
-                    <Link
-                      to="/services"
-                      className="w-full text-center block btn-primary font-medium"
-                    >
-                      Lihat Paket →
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Fallback Custom Service Card */}
-                <div
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden card-hover border border-gray-100"
-                  data-aos="fade-up"
-                  data-aos-delay="500"
-                >
-                  <div className="p-8 text-center">
-                    <div className="text-6xl mb-6">✨</div>
-                    <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                      Custom Service
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      Buat layanan pernikahan sesuai dengan visi dan kebutuhan unik
-                      Anda dengan konsultasi langsung
-                    </p>
-                    <Link
-                      to="/custom-service"
-                      className="w-full text-center block btn-primary font-medium"
-                    >
-                      Buat Custom →
-                    </Link>
-                  </div>
-                </div>
-              </>
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-600">Tidak ada paket tersedia saat ini.</p>
+              </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Gallery Section */}
+      <section className="section-padding bg-gray-50">
+        <div className="container-custom">
+          <div className="text-center mb-16" data-aos="fade-up">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+              {galleryContent ? galleryContent.title : ''}
+            </h2>
+            <p className="font-bold text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              {galleryContent ? galleryContent.subtitle : ''}
+            </p>
+          </div>
+
+          {galleryImages.length > 0 ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-12 max-w-6xl mx-auto" data-aos="fade-up">
+              {galleryImages.map((image, index) => (
+                <div
+                  key={image.id}
+                  className="group relative overflow-hidden rounded-2xl shadow-lg card-hover"
+                  data-aos="fade-up"
+                  data-aos-delay={index * 100}
+                >
+                  <img
+                    src={image.image_url}
+                    alt={image.title || 'Gallery image'}
+                    className="w-full h-64 md:h-96 object-cover object-center transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-4 left-4 text-white">
+                      {image.category_name && (
+                        <span className="inline-block px-3 py-1 bg-primary-500 rounded-full text-sm font-medium mb-2">
+                          {image.category_name}
+                        </span>
+                      )}
+                      {image.title && (
+                        <h3 className="text-lg font-semibold">{image.title}</h3>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Tidak ada galeri tersedia saat ini.</p>
+            </div>
+          )}
+
+          {galleryImages.length > 0 && (
+            <div className="text-center" data-aos="fade-up" data-aos-delay="600">
+              <Link
+                to="/gallery"
+                className="inline-block btn-primary-outline font-medium"
+              >
+                Lihat Semua Galeri →
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

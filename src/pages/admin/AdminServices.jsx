@@ -32,7 +32,7 @@ const AdminServices = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/services');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/services');
       const data = await response.json();
       setServices(data);
     } catch (error) {
@@ -42,7 +42,7 @@ const AdminServices = () => {
 
   const fetchAvailableItems = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/items');
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/items');
       const data = await response.json();
       setAvailableItems(data);
     } catch (error) {
@@ -52,7 +52,7 @@ const AdminServices = () => {
 
   const fetchServiceItems = async (serviceId) => {
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/services/${serviceId}/items`);
+      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/services/${serviceId}/items`);
       const data = await response.json();
       setServiceItems(data);
     } catch (error) {
@@ -63,8 +63,8 @@ const AdminServices = () => {
   const handleServiceSubmit = async (serviceData) => {
     try {
       const url = serviceData.id 
-        ? `https://api-inventory.isavralabel.com/user-wedding/api/services/${serviceData.id}`
-        : 'https://api-inventory.isavralabel.com/user-wedding/api/services';
+        ? `https://api-inventory.isavralabel.com/user-studio/api/services/${serviceData.id}`
+        : 'https://api-inventory.isavralabel.com/user-studio/api/services';
       
       const method = serviceData.id ? 'PUT' : 'POST';
       
@@ -125,7 +125,7 @@ const AdminServices = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/services/${id}`, {
+      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/services/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
@@ -146,7 +146,7 @@ const AdminServices = () => {
 
   const handleAddItemToService = async (itemData) => {
     try {
-      const url = `https://api-inventory.isavralabel.com/user-wedding/api/services/${selectedService.id}/items`;
+      const url = `https://api-inventory.isavralabel.com/user-studio/api/services/${selectedService.id}/items`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -173,7 +173,7 @@ const AdminServices = () => {
 
   const handleUpdateServiceItem = async (itemData) => {
     try {
-      const url = `https://api-inventory.isavralabel.com/user-wedding/api/service-items/${editingServiceItem.id}`;
+      const url = `https://api-inventory.isavralabel.com/user-studio/api/service-items/${editingServiceItem.id}`;
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -233,7 +233,7 @@ const AdminServices = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/service-items/${id}`, {
+      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/service-items/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
@@ -306,10 +306,11 @@ const AdminServices = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-semibold text-gray-900">{service.name}</div>
-                        {service.image && (
+                        {/* Tampilkan gambar pertama dari kumpulan images jika tersedia, fallback ke field image lama */}
+                        {(service.images?.length > 0 || service.image) && (
                           <div className="mt-1">
                             <img 
-                              src={service.image} 
+                              src={service.images?.[0]?.image_url || service.image} 
                               alt={service.name}
                               className="w-12 h-12 rounded-lg object-cover"
                               onError={(e) => {
@@ -499,19 +500,39 @@ const AdminServices = () => {
 };
 
 const ServiceModal = ({ service, onSubmit, onClose }) => {
+  const initialImages = Array.isArray(service?.images) && service.images.length > 0
+    ? service.images
+        .map(img => img.image_url)
+        .filter((url) => typeof url === 'string' && url.trim().length > 0)
+    : (service?.image
+        ? [service.image]
+        : ['']);
+
   const [formData, setFormData] = useState({
     name: service?.name || '',
     description: service?.description || '',
     base_price: service?.base_price || '',
-    image: service?.image || ''
+    images: initialImages
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const images = Array.isArray(formData.images)
+      ? formData.images
+          .map((url) => (url || '').trim())
+          .filter((url) => url.length > 0)
+      : [];
+
+    const primaryImage = images[0] || '';
+
     onSubmit({
-      ...formData,
+      name: formData.name,
+      description: formData.description,
       id: service?.id,
-      base_price: parseFloat(formData.base_price)
+      base_price: parseFloat(formData.base_price),
+      image: primaryImage,
+      images
     });
   };
 
@@ -554,21 +575,71 @@ const ServiceModal = ({ service, onSubmit, onClose }) => {
                   type="number"
                   step="0.01"
                   value={formData.base_price}
-                  onChange={(e) => setFormData({...formData, base_price: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">URL Gambar</label>
-                <input
-                  type="url"
-                  value={formData.image}
-                  onChange={(e) => setFormData({...formData, image: e.target.value})}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  URL Gambar
+                </label>
+                <div className="space-y-3">
+                  {formData.images.map((url, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={url}
+                          onChange={(e) => {
+                            const newImages = [...formData.images];
+                            newImages[index] = e.target.value;
+                            setFormData({ ...formData, images: newImages });
+                          }}
+                          placeholder={`https://example.com/image-${index + 1}.jpg`}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+                        {index === 0 && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            Gambar pertama akan digunakan sebagai gambar utama/thumbnail layanan.
+                          </p>
+                        )}
+                      </div>
+                      {url && (
+                        <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0">
+                          <img
+                            src={url}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                      {formData.images.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newImages = formData.images.filter((_, i) => i !== index);
+                            setFormData({ ...formData, images: newImages.length ? newImages : [''] });
+                          }}
+                          className="mt-2 text-red-600 hover:text-red-700 text-sm"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, images: [...formData.images, ''] })}
+                    className="px-3 py-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    + Tambah URL Gambar
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-4 pt-6">

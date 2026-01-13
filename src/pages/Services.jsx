@@ -22,7 +22,7 @@ const Services = () => {
   const fetchServices = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-wedding/api/services"
+        "https://api-inventory.isavralabel.com/user-studio/api/services"
       );
       const data = await response.json();
       setServices(data);
@@ -34,7 +34,7 @@ const Services = () => {
   const fetchHeroContent = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-wedding/api/content-sections/services_hero_section"
+        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/services_hero_section"
       );
       if (response.ok) {
         const data = await response.json();
@@ -48,7 +48,7 @@ const Services = () => {
   return (
     <>
       <Helmet>
-        <title>Wedding Package - User Wedding</title>
+        <title>Wedding Package - User Studio</title>
         <meta
           name="description"
           content="Jelajahi paket pernikahan komprehensif kami termasuk perencanaan, dekorasi, fotografi, dan lainnya."

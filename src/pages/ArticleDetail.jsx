@@ -13,7 +13,7 @@ const ArticleDetail = () => {
 
   const fetchArticle = async () => {
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-wedding/api/articles/${id}`);
+      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/articles/${id}`);
       const data = await response.json();
       setArticle(data);
     } catch (error) {
@@ -51,7 +51,7 @@ const ArticleDetail = () => {
   return (
     <>
       <Helmet>
-        <title>{article.title} - User Wedding</title>
+        <title>{article.title} - User Studio</title>
         <meta name="description" content={article.excerpt || article.content.substring(0, 160)} />
       </Helmet>
 

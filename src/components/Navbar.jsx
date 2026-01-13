@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo.jpeg';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,10 +17,9 @@ const Navbar = () => {
 
   const navItems = [
     { name: 'Beranda', path: '/' },
-    { name: 'Wedding Package', path: '/services' },
-    { name: 'Custom Service', path: '/custom-service' },
+    { name: 'Price List', path: '/services' },
     { name: 'Galeri', path: '/gallery' },
-    { name: 'Tentang', path: '/about' },
+    // { name: 'Tentang', path: '/about' },
     // { name: 'Artikel', path: '/articles' },
     { name: 'Kontak', path: '/contact' },
   ];

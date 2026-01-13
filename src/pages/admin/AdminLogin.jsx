@@ -25,7 +25,7 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-wedding/api/admin/login', {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/admin/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,8 +52,8 @@ const AdminLogin = () => {
   return (
     <>
       <Helmet>
-        <title>Admin Login - User Wedding</title>
-        <meta name="description" content="Portal login admin untuk sistem manajemen User Wedding." />
+        <title>Admin Login - User Studio</title>
+        <meta name="description" content="Portal login admin untuk sistem manajemen User Studio." />
       </Helmet>
 
       <div className="min-h-screen gradient-bg flex items-center justify-center px-4">
