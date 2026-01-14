@@ -648,10 +648,25 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
     phone: '',
     address: '',
     wedding_date: '',
+    studio: '',
     booking_amount: 0,
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get minimum datetime (current time)
+  const getMinDateTime = () => {
+    const now = new Date();
+    // Set to next minute to avoid selecting current minute
+    now.setMinutes(now.getMinutes() + 1);
+    // Format as YYYY-MM-DDTHH:mm for datetime-local input
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -677,7 +692,8 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
         base_price: service.base_price,
         selected_items: selectedItems,
         total_amount: totalAmount,
-        booking_amount: parseFloat(formData.booking_amount)
+        booking_amount: parseFloat(formData.booking_amount),
+        studio: formData.studio
       };
       
       const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/orders', {
@@ -779,15 +795,34 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Pernikahan</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal & Waktu Booking</label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       name="wedding_date"
                       value={formData.wedding_date}
                       onChange={handleInputChange}
+                      min={getMinDateTime()}
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Pilih tanggal dan waktu booking. Tidak bisa memilih waktu yang sudah lewat.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Studio</label>
+                    <select
+                      name="studio"
+                      value={formData.studio}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="">Pilih Studio</option>
+                      <option value="Studio 1">Studio 1</option>
+                      <option value="Studio 2">Studio 2</option>
+                    </select>
                   </div>
 
                   <div>

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import AdminLayout from "../../components/AdminLayout";
-import { formatRupiah, formatDate } from "../../utils/formatters";
+import { formatRupiah, formatDate, formatDateTime } from "../../utils/formatters";
 import jsPDF from "jspdf";
 
 const AdminOrdersHistory = () => {
@@ -324,7 +324,7 @@ const AdminOrdersHistory = () => {
     );
     const eventDate = item.wedding_date || item.shooting_date;
     doc.text(
-      `Jatuh Tempo: ${eventDate ? formatDate(eventDate) : "-"}`,
+      `Jatuh Tempo: ${eventDate ? formatDateTime(eventDate) : "-"}`,
       150,
       44
     );
@@ -591,10 +591,15 @@ const AdminOrdersHistory = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {formatDate(
+                            {formatDateTime(
                               order.wedding_date || order.shooting_date
                             )}
                           </div>
+                          {order.studio && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {order.studio}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-bold text-primary-600">
@@ -802,14 +807,19 @@ const AdminOrdersHistory = () => {
                       </div>
                       <div>
                         <span className="font-medium text-gray-700">
-                          Tanggal Booking:
+                          Tanggal & Waktu Booking:
                         </span>
                         <p className="text-gray-900">
-                          {formatDate(
+                          {formatDateTime(
                             selectedOrder.wedding_date ||
                               selectedOrder.shooting_date
                           )}
                         </p>
+                        {selectedOrder.studio && (
+                          <p className="text-gray-900 mt-1">
+                            <span className="font-medium">Studio:</span> {selectedOrder.studio}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <span className="font-medium text-gray-700">

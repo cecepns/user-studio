@@ -631,15 +631,15 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/orders', async (req, res) => {
-  const { name, email, phone, address, wedding_date, shooting_date, notes, service_id, service_name, selected_items, total_amount, booking_amount } = req.body;
+  const { name, email, phone, address, wedding_date, shooting_date, notes, service_id, service_name, selected_items, total_amount, booking_amount, studio } = req.body;
   
   // Backward compatibility: support both wedding_date (lama) dan shooting_date (baru)
   const bookingDate = shooting_date || wedding_date || null;
 
   try {
     const [result] = await db.execute(
-      'INSERT INTO orders (name, email, phone, address, shooting_date, notes, service_id, service_name, selected_items, total_amount, booking_amount, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, email, phone, address, bookingDate, notes, service_id, service_name, JSON.stringify(selected_items), total_amount, booking_amount || 0, 'pending']
+      'INSERT INTO orders (name, email, phone, address, shooting_date, notes, service_id, service_name, selected_items, total_amount, booking_amount, status, studio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, phone, address, bookingDate, notes, service_id, service_name, JSON.stringify(selected_items), total_amount, booking_amount || 0, 'pending', studio || null]
     );
     res.json({ id: result.insertId, message: 'Order created successfully' });
   } catch (error) {

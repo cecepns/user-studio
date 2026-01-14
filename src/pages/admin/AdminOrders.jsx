@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Eye, Trash2, ChevronLeft, ChevronRight, X, Edit, Download } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import AdminLayout from "../../components/AdminLayout";
-import { formatRupiah, formatDate } from "../../utils/formatters";
+import { formatRupiah, formatDate, formatDateTime } from "../../utils/formatters";
 import jsPDF from "jspdf";
 
 const AdminOrders = () => {
@@ -452,7 +452,7 @@ const AdminOrders = () => {
       37
     );
     const eventDate = item.wedding_date || item.shooting_date;
-    doc.text(`Jatuh Tempo: ${eventDate ? formatDate(eventDate) : '-'}`, 150, 44);
+    doc.text(`Jatuh Tempo: ${eventDate ? formatDateTime(eventDate) : '-'}`, 150, 44);
 
     // Bill To section
     doc.setFontSize(12);
@@ -867,9 +867,14 @@ const AdminOrders = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {formatDate(order.wedding_date || order.shooting_date)}
-                          </div>
+                            <div className="text-sm text-gray-900">
+                              {formatDateTime(order.wedding_date || order.shooting_date)}
+                            </div>
+                            {order.studio && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {order.studio}
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-bold text-primary-600">
@@ -1084,11 +1089,16 @@ const AdminOrders = () => {
                       </div>
                       <div>
                         <span className="font-medium text-gray-700">
-                          Tanggal Booking:
+                          Tanggal & Waktu Booking:
                         </span>
                         <p className="text-gray-900">
-                          {formatDate(selectedOrder.wedding_date || selectedOrder.shooting_date)}
+                          {formatDateTime(selectedOrder.wedding_date || selectedOrder.shooting_date)}
                         </p>
+                        {selectedOrder.studio && (
+                          <p className="text-gray-900 mt-1">
+                            <span className="font-medium">Studio:</span> {selectedOrder.studio}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <span className="font-medium text-gray-700">
