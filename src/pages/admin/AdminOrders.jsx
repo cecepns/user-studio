@@ -157,22 +157,14 @@ const AdminOrders = () => {
       );
 
       if (response.ok) {
-        // Optimistic update di tabel & kalender
-        setOrders((prev) =>
-          prev.map((order) =>
-            order.id === orderId ? { ...order, status: newStatus } : order
-          )
-        );
+        // Optimistic update: hapus order yang sudah bukan pending dari semua list lokal
+        setOrders((prev) => prev.filter((order) => order.id !== orderId));
         setCalendarOrders((prev) =>
-          prev.map((order) =>
-            order.id === orderId ? { ...order, status: newStatus } : order
-          )
+          prev.filter((order) => order.id !== orderId)
         );
         setTableFilteredOrders((prev) =>
           Array.isArray(prev)
-            ? prev.map((order) =>
-                order.id === orderId ? { ...order, status: newStatus } : order
-              )
+            ? prev.filter((order) => order.id !== orderId)
             : prev
         );
 
