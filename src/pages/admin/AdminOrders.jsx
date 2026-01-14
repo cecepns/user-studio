@@ -839,9 +839,9 @@ const AdminOrders = () => {
                       </tr>
                     ) : tableOrders.length > 0 ? (
                       tableOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-gray-50">
+                        <tr key={order.id} className="hover:bg-gray-50 bg-green-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="bg-green-50 rounded-lg px-3 py-2 inline-flex flex-col">
+                            <div className="rounded-lg px-3 py-2 inline-flex flex-col">
                               <span className="text-xs font-semibold text-green-800">
                                 #{order.id}
                               </span>
