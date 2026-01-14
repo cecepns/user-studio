@@ -156,7 +156,28 @@ const AdminOrders = () => {
       );
 
       if (response.ok) {
+        // Optimistic update di tabel & kalender
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+        setCalendarOrders((prev) =>
+          prev.map((order) =>
+            order.id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+        setTableFilteredOrders((prev) =>
+          Array.isArray(prev)
+            ? prev.map((order) =>
+                order.id === orderId ? { ...order, status: newStatus } : order
+              )
+            : prev
+        );
+
+        // Refetch untuk sinkron dengan server & filter status=pending
         fetchOrders();
+        fetchCalendarOrders(calendarMonth);
         toast.success("Status pesanan berhasil diperbarui!");
       } else {
         toast.error("Error memperbarui status pesanan");
