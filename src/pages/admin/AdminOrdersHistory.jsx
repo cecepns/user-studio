@@ -539,6 +539,9 @@ const AdminOrdersHistory = () => {
                       Tanggal Booking
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Studio
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -556,7 +559,7 @@ const AdminOrdersHistory = () => {
                   {loading ? (
                     <tr>
                       <td
-                        colSpan="8"
+                        colSpan="9"
                         className="px-6 py-4 text-center text-gray-500"
                       >
                         Memuat data...
@@ -595,11 +598,11 @@ const AdminOrdersHistory = () => {
                               order.wedding_date || order.shooting_date
                             )}
                           </div>
-                          {order.studio && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {order.studio}
-                            </div>
-                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {order.studio || "-"}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-bold text-primary-600">

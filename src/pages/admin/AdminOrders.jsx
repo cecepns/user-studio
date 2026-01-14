@@ -231,7 +231,26 @@ const AdminOrders = () => {
       );
 
       if (response.ok) {
+        // Optimistic update: hapus order dari semua list lokal
+        setOrders((prev) => prev.filter((order) => order.id !== orderId));
+        setCalendarOrders((prev) =>
+          prev.filter((order) => order.id !== orderId)
+        );
+        setTableFilteredOrders((prev) =>
+          Array.isArray(prev)
+            ? prev.filter((order) => order.id !== orderId)
+            : prev
+        );
+
+        // Tutup modal detail jika order yang dihapus sedang dilihat
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setShowDetailModal(false);
+          setSelectedOrder(null);
+        }
+
+        // Refetch untuk sinkron dengan server
         fetchOrders();
+        fetchCalendarOrders(calendarMonth);
         toast.success("Pesanan berhasil dihapus!");
       } else {
         toast.error("Error menghapus pesanan");
@@ -814,6 +833,9 @@ const AdminOrders = () => {
                         Tanggal Booking
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Studio
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Total
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -831,7 +853,7 @@ const AdminOrders = () => {
                     {loading ? (
                       <tr>
                         <td
-                          colSpan="7"
+                          colSpan="9"
                           className="px-6 py-4 text-center text-gray-500"
                         >
                           Memuat data...
@@ -870,11 +892,11 @@ const AdminOrders = () => {
                             <div className="text-sm text-gray-900">
                               {formatDateTime(order.wedding_date || order.shooting_date)}
                             </div>
-                            {order.studio && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                {order.studio}
-                              </div>
-                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {order.studio || "-"}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-bold text-primary-600">
