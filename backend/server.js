@@ -580,13 +580,20 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
     const offset = (page - 1) * limit;
     const { status } = req.query;
 
-    // Optional status filter
+    // Optional status filter (mendukung satu atau beberapa status, dipisahkan koma)
     const whereClauses = [];
     const params = [];
 
     if (status) {
-      whereClauses.push('status = ?');
-      params.push(status);
+      const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+
+      if (statuses.length === 1) {
+        whereClauses.push('status = ?');
+        params.push(statuses[0]);
+      } else if (statuses.length > 1) {
+        whereClauses.push(`status IN (${statuses.map(() => '?').join(',')})`);
+        params.push(...statuses);
+      }
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
