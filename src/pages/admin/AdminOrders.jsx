@@ -749,13 +749,13 @@ const AdminOrders = () => {
                           }}
                           className={`h-14 border border-gray-100 flex flex-col items-center justify-center relative transition ${
                             hasBookings
-                              ? "bg-red-50 hover:bg-red-100"
-                              : "hover:bg-gray-50"
+                              ? "bg-red-200 hover:bg-red-100"
+                              : "bg-blue-50 hover:bg-blue-100"
                           } ${isSelected ? "ring-2 ring-primary-500 z-10" : ""}`}
                         >
                           <span
                             className={`text-sm font-medium ${
-                              hasBookings ? "text-red-700" : "text-gray-700"
+                              hasBookings ? "text-red-700" : "text-blue-700"
                             }`}
                           >
                             {d}
@@ -770,72 +770,13 @@ const AdminOrders = () => {
                 </div>
               </div>
             </div>
-
-            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-6">
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">
-                {selectedDate
-                  ? `Booking pada ${new Date(
-                      selectedDate
-                    ).toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}`
-                  : "Pilih tanggal untuk melihat booking"}
-              </h3>
-              <div className="max-h-64 overflow-y-auto pr-1 space-y-3">
-                {selectedDate && bookingsByDate[selectedDate] ? (
-                  bookingsByDate[selectedDate].map((order) => (
-                    <div
-                      key={order.id}
-                      className="p-3 rounded-lg border border-gray-200 bg-gray-50"
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-semibold text-gray-800">
-                          {order.name}
-                        </span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {order.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 mb-1">
-                        {order.service_name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Total: {formatRupiah(order.total_amount)}
-                      </p>
-                      {(!tableFilterDate || tableFilterDate !== selectedDate) && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleFilterTableBySelectedDate(selectedDate)
-                          }
-                          className="mt-2 text-xs font-semibold text-primary-600 hover:text-primary-700"
-                        >
-                          Lihat di tabel
-                        </button>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    {selectedDate
-                      ? "Tidak ada booking pada tanggal ini."
-                      : "Belum ada tanggal yang dipilih."}
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Orders Table */}
-        <div className="space-y-6">
-            {tableFilteredOrders && selectedDate && (
+        {selectedDate && (
+          <div className="space-y-6">
+            {tableFilteredOrders && (
               <div className="flex items-center justify-between bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg">
                 <span className="text-sm text-blue-800">
                   Menampilkan pesanan untuk tanggal{" "}
@@ -900,11 +841,13 @@ const AdminOrders = () => {
                       tableOrders.map((order) => (
                         <tr key={order.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              #{order.id}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {formatDate(order.created_at)}
+                            <div className="bg-green-50 rounded-lg px-3 py-2 inline-flex flex-col">
+                              <span className="text-xs font-semibold text-green-800">
+                                #{order.id}
+                              </span>
+                              <span className="text-xs text-green-700 mt-1">
+                                {formatDate(order.created_at)}
+                              </span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -1076,6 +1019,7 @@ const AdminOrders = () => {
               </div>
             )}
           </div>
+        )}
 
         {/* Order Detail Modal */}
         {showDetailModal && selectedOrder && (
