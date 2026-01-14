@@ -950,7 +950,7 @@ const AdminOrders = () => {
                             >
                               <option value="pending">Menunggu</option>
                               <option value="confirmed">Dikonfirmasi</option>
-                              <option value="completed">Selesai</option>
+                              {/* <option value="completed">Selesai</option> */}
                               <option value="cancelled">Dibatalkan</option>
                             </select>
                           </td>

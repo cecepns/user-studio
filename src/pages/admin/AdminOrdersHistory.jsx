@@ -58,7 +58,7 @@ const AdminOrdersHistory = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=confirmed,completed`,
+        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=confirmed,completed,cancelled`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
