@@ -173,10 +173,10 @@ const Home = () => {
                 src={
                   heroContent && heroContent.image_url
                     ? heroContent.image_url
-                    : heroImage
+                    : "https://placehold.co/600x400"
                 }
                 alt="Upacara pernikahan yang indah"
-                className="relative z-10 w-full h-96 lg:h-[500px] object-cover rounded-2xl shadow-2xl"
+                className="relative z-10 w-full h-96 lg:h-[500px] object-cover rounded-2xl shadow-md"
               />
             </div>
           </div>
