@@ -29,6 +29,7 @@ const AdminOrders = () => {
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [tableFilteredOrders, setTableFilteredOrders] = useState(null);
+  const [tableFilterDate, setTableFilterDate] = useState(null);
 
   useEffect(() => {
     // Intentionally only depend on page to avoid ref changes of fetchOrders
@@ -355,10 +356,12 @@ const AdminOrders = () => {
     if (!dateKey) return;
     const ordersForDate = bookingsByDate[dateKey] || [];
     setTableFilteredOrders(ordersForDate);
+    setTableFilterDate(dateKey);
   };
 
   const handleClearTableFilter = () => {
     setTableFilteredOrders(null);
+    setTableFilterDate(null);
   };
 
   const tableOrders = tableFilteredOrders ?? orders;
@@ -813,13 +816,17 @@ const AdminOrders = () => {
                       <p className="text-xs text-gray-500">
                         Total: {formatRupiah(order.total_amount)}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => handleFilterTableBySelectedDate(selectedDate)}
-                        className="mt-2 text-xs font-semibold text-primary-600 hover:text-primary-700"
-                      >
-                        Lihat di tabel
-                      </button>
+                      {(!tableFilterDate || tableFilterDate !== selectedDate) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleFilterTableBySelectedDate(selectedDate)
+                          }
+                          className="mt-2 text-xs font-semibold text-primary-600 hover:text-primary-700"
+                        >
+                          Lihat di tabel
+                        </button>
+                      )}
                     </div>
                   ))
                 ) : (
