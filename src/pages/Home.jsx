@@ -4,15 +4,11 @@ import { Link } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import heroImage from "../assets/hero-banner.jpg";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/navigation";
 
 const Home = () => {
   const [heroContent, setHeroContent] = useState(null);
   const [servicesContent, setServicesContent] = useState(null);
-  const [services, setServices] = useState([]);
+  const [serviceCards, setServiceCards] = useState([]);
   const [galleryContent, setGalleryContent] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]);
   const [ctaContent, setCtaContent] = useState(null);
@@ -24,10 +20,10 @@ const Home = () => {
       once: true,
       mirror: false,
     });
-    
+
     fetchHeroContent();
     fetchServicesContent();
-    fetchServices();
+    fetchServiceCards();
     fetchGalleryContent();
     fetchGalleryImages();
     fetchCtaContent();
@@ -35,80 +31,86 @@ const Home = () => {
 
   const fetchHeroContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/hero_section');
+      const response = await fetch(
+        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/hero_section"
+      );
       if (response.ok) {
         const data = await response.json();
         setHeroContent(data);
       }
     } catch (error) {
-      console.error('Error fetching hero content:', error);
+      console.error("Error fetching hero content:", error);
     }
   };
 
   const fetchServicesContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/services_preview_section');
+      const response = await fetch(
+        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/services_preview_section"
+      );
       if (response.ok) {
         const data = await response.json();
         setServicesContent(data);
       }
     } catch (error) {
-      console.error('Error fetching services content:', error);
+      console.error("Error fetching services content:", error);
     }
   };
 
-  const fetchServices = async () => {
+  const fetchServiceCards = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/services');
+      const response = await fetch(
+        "https://api-inventory.isavralabel.com/user-studio/api/service-cards"
+      );
       if (response.ok) {
         const data = await response.json();
-        setServices(data);
+        setServiceCards(data);
       }
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error("Error fetching service cards:", error);
     }
-  };
-
-  const formatPrice = (price) => {
-    const numPrice = typeof price === "string" ? parseFloat(price) : price;
-    if (isNaN(numPrice)) return "Rp 0";
-    return `Rp ${numPrice.toLocaleString("id-ID")}`;
   };
 
   const fetchGalleryContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/gallery_section');
+      const response = await fetch(
+        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/gallery_section"
+      );
       if (response.ok) {
         const data = await response.json();
         setGalleryContent(data);
       }
     } catch (error) {
-      console.error('Error fetching gallery content:', error);
+      console.error("Error fetching gallery content:", error);
     }
   };
 
   const fetchGalleryImages = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/gallery/images?featured=true');
+      const response = await fetch(
+        "https://api-inventory.isavralabel.com/user-studio/api/gallery/images?featured=true"
+      );
       if (response.ok) {
         const data = await response.json();
         // Limit to 6 images for homepage preview
         setGalleryImages(data.slice(0, 6));
       }
     } catch (error) {
-      console.error('Error fetching gallery images:', error);
+      console.error("Error fetching gallery images:", error);
     }
   };
 
   const fetchCtaContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/home_cta_section');
+      const response = await fetch(
+        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/home_cta_section"
+      );
       if (response.ok) {
         const data = await response.json();
         setCtaContent(data);
       }
     } catch (error) {
-      console.error('Error fetching CTA content:', error);
+      console.error("Error fetching CTA content:", error);
     }
   };
 
@@ -134,37 +136,45 @@ const Home = () => {
           <div className="flex flex-col-reverse lg:grid lg:grid-cols-2 gap-12 items-center">
             <div data-aos="fade-right" data-aos-delay="200">
               <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-gray-800 mb-6 leading-tight">
-                {heroContent ? heroContent.title : 'Hari'}
-                {heroContent && heroContent.subtitle 
-                  ? heroContent.subtitle.split(', ').map((part, index) => (
-                      <span key={index} className={`block ${index === 0 ? 'text-gradient' : ''}`}>
-                        {part}
-                      </span>
-                    ))
-                  : <span className="text-gradient block">Pernikahan</span>
-                }
+                {heroContent ? heroContent.title : "Hari"}
+                {heroContent && heroContent.subtitle ? (
+                  heroContent.subtitle.split(", ").map((part, index) => (
+                    <span
+                      key={index}
+                      className={`block ${index === 0 ? "text-gradient" : ""}`}
+                    >
+                      {part}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gradient block">Pernikahan</span>
+                )}
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                {heroContent ? heroContent.description : 'Buatlah Kesan Indah di Moment Pernikahanmu, dan Abadikan Setiap Moment di Hari Bahagia Mu, Libatkan Kami Untuk Mengatur Acara Bahagiamu.'}
+                {heroContent
+                  ? heroContent.description
+                  : "Buatlah Kesan Indah di Moment Pernikahanmu, dan Abadikan Setiap Moment di Hari Bahagia Mu, Libatkan Kami Untuk Mengatur Acara Bahagiamu."}
               </p>
-              <div
-                className="flex flex-col sm:flex-row gap-4"
-                data-aos="fade-up"
-                data-aos-delay="400"
-              >
-                <Link 
-                  to={heroContent ? heroContent.button_url : '/contact'} 
-                  className="btn-primary-outline text-center"
-                >
-                  {heroContent ? heroContent.button_text : 'Konsultasi Gratis'}
-                </Link>
-              </div>
+              {heroContent && heroContent.button_text && (
+                <div className="mt-8">
+                  <Link
+                    to={heroContent.button_url || "/contact"}
+                    className="btn-primary-outline"
+                  >
+                    {heroContent.button_text}
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="relative" data-aos="fade-left" data-aos-delay="300">
               <div className="absolute inset-0 bg-gradient-to-r from-primary-200 to-secondary-200 rounded-full blur-3xl opacity-30 animate-float"></div>
               <img
-                src={heroContent && heroContent.image_url ? heroContent.image_url : heroImage}
+                src={
+                  heroContent && heroContent.image_url
+                    ? heroContent.image_url
+                    : heroImage
+                }
                 alt="Upacara pernikahan yang indah"
                 className="relative z-10 w-full h-96 lg:h-[500px] object-cover rounded-2xl shadow-2xl"
               />
@@ -224,148 +234,23 @@ const Home = () => {
         </div>
       </section> */}
 
-      {/* Services Preview */}
-      <section className="section-padding">
-        <div className="container-custom">
-          <div className="text-center mb-16" data-aos="fade-up">
-            <h2 className=" text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
-              {servicesContent ? servicesContent.title : ''}
-            </h2>
-            <p className="font-bold text-gray-600 max-w-4xl mx-auto leading-relaxed">
-              {servicesContent ? servicesContent.subtitle : ''}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 max-w-6xl mx-auto" data-aos="fade-up">
-            {services.length > 0 ? (
-              services.map((service, index) => (
-                <div
-                  key={service.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden card-hover border border-gray-100"
-                  data-aos="fade-up"
-                  data-aos-delay={index * 100}
-                >
-                  <div className="relative">
-                    {Array.isArray(service.images) && service.images.length > 1 ? (
-                      <Swiper
-                        modules={[Navigation]}
-                        navigation={{
-                          prevEl: `.service-prev-${service.id}`,
-                          nextEl: `.service-next-${service.id}`,
-                        }}
-                        loop={true}
-                        className="w-full h-96 md:h-96"
-                      >
-                        {service.images.map((img, imgIndex) => (
-                          <SwiperSlide key={img.id || imgIndex}>
-                            <img
-                              src={
-                                img.image_url ||
-                                service.image ||
-                                `https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=400`
-                              }
-                              alt={`${service.name} - gambar ${imgIndex + 1}`}
-                              className="w-full h-96 md:h-96 object-cover"
-                              onError={(e) => {
-                                e.target.style.display = "none";
-                              }}
-                            />
-                          </SwiperSlide>
-                        ))}
-                      </Swiper>
-                    ) : (
-                      <img
-                        src={
-                          (Array.isArray(service.images) && service.images.length > 0
-                            ? service.images[0]?.image_url
-                            : null) ||
-                          service.image ||
-                          `https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=400`
-                        }
-                        alt={service.name}
-                        className="w-full h-96 md:h-96 object-cover"
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                        }}
-                      />
-                    )}
-
-                    {/* Custom navigation buttons */}
-                    {Array.isArray(service.images) && service.images.length > 1 && (
-                      <>
-                        <button
-                          className={`service-prev-${service.id} absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 rounded-full w-9 h-9 flex items-center justify-center shadow-lg border border-gray-200 transition`}
-                        >
-                          <span className="sr-only">Sebelumnya</span>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.8}
-                            stroke="currentColor"
-                            className="w-4 h-4"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                          </svg>
-                        </button>
-                        <button
-                          className={`service-next-${service.id} absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 rounded-full w-9 h-9 flex items-center justify-center shadow-lg border border-gray-200 transition`}
-                        >
-                          <span className="sr-only">Berikutnya</span>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.8}
-                            stroke="currentColor"
-                            className="w-4 h-4"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5L15.75 12l-7.5 7.5" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
-
-                    <div className="absolute bottom-2 left-2 px-4 py-1 rounded-full bg-white text-blue-600 text-xs font-semibold">
-                      Mulai dari {formatPrice(service.base_price)}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-2xl font-semibold text-gray-800 mb-3">
-                      {service.name}
-                    </h3>
-                    <Link
-                      to={`/services/${service.id}`}
-                      className="w-full text-center block btn-primary font-medium"
-                    >
-                      Lihat Detail →
-                    </Link>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-gray-600">Tidak ada paket tersedia saat ini.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
       {/* Gallery Section */}
       <section className="section-padding bg-gray-50">
         <div className="container-custom">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
-              {galleryContent ? galleryContent.title : ''}
+              {galleryContent ? galleryContent.title : ""}
             </h2>
             <p className="font-bold text-gray-600 max-w-4xl mx-auto leading-relaxed">
-              {galleryContent ? galleryContent.subtitle : ''}
+              {galleryContent ? galleryContent.subtitle : ""}
             </p>
           </div>
 
           {galleryImages.length > 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-12 max-w-6xl mx-auto" data-aos="fade-up">
+            <div
+              className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-12 max-w-6xl mx-auto"
+              data-aos="fade-up"
+            >
               {galleryImages.map((image, index) => (
                 <div
                   key={image.id}
@@ -375,7 +260,7 @@ const Home = () => {
                 >
                   <img
                     src={image.image_url}
-                    alt={image.title || 'Gallery image'}
+                    alt={image.title || "Gallery image"}
                     className="w-full h-64 md:h-96 object-cover object-center transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -395,12 +280,18 @@ const Home = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-600">Tidak ada galeri tersedia saat ini.</p>
+              <p className="text-gray-600">
+                Tidak ada galeri tersedia saat ini.
+              </p>
             </div>
           )}
 
           {galleryImages.length > 0 && (
-            <div className="text-center" data-aos="fade-up" data-aos-delay="600">
+            <div
+              className="text-center"
+              data-aos="fade-up"
+              data-aos-delay="600"
+            >
               <Link
                 to="/gallery"
                 className="inline-block btn-primary-outline font-medium"
@@ -412,16 +303,64 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Services Preview */}
+      <section className="section-padding">
+        <div className="container-custom">
+          <div className="text-center mb-16" data-aos="fade-up">
+            <h2 className=" text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+              {servicesContent ? servicesContent.title : ""}
+            </h2>
+            <p className="font-bold text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              {servicesContent ? servicesContent.subtitle : ""}
+            </p>
+          </div>
+
+          <div
+            className="grid md:grid-cols-2 gap-8 mb-12 max-w-4xl mx-auto"
+            data-aos="fade-up"
+          >
+            {serviceCards.length > 0 ? (
+              serviceCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="bg-[#f0f8ff] rounded-2xl shadow-lg overflow-hidden card-hover border border-gray-100"
+                >
+                  <div className="p-8 text-center">
+                    <div className="text-6xl mb-6">{card.icon}</div>
+                    <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+                      {card.title}
+                    </h3>
+                    <p className="text-gray-600 mb-6">{card.description}</p>
+                    <Link
+                      to={card.button_url}
+                      className="w-full text-center block btn-primary font-medium"
+                    >
+                      {card.button_text}
+                    </Link>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-600">
+                  Tidak ada service tersedia saat ini.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="section-padding bg-gray-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary-900/20 to-secondary-900/20"></div>
         <div className="container-custom relative z-10">
           <div className="text-center max-w-4xl mx-auto" data-aos="fade-up">
             <h2 className="  text-3xl lg:text-5xl font-bold mb-6">
-              {ctaContent ? ctaContent.title : ''}
+              {ctaContent ? ctaContent.title : ""}
             </h2>
             <p className="text-xl text-gray-300 mb-8">
-              {ctaContent ? ctaContent.description : ''}
+              {ctaContent ? ctaContent.description : ""}
             </p>
             <div
               className="flex flex-col sm:flex-row gap-4 justify-center"
@@ -429,10 +368,10 @@ const Home = () => {
               data-aos-delay="300"
             >
               <Link
-                to={ctaContent ? ctaContent.button_url : '/contact'}
+                to={ctaContent ? ctaContent.button_url : "/contact"}
                 className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-gray-900 transition-all duration-300"
               >
-                {ctaContent ? ctaContent.button_text : 'Booking Konsultasi'}
+                {ctaContent ? ctaContent.button_text : "Booking Konsultasi"}
               </Link>
             </div>
           </div>

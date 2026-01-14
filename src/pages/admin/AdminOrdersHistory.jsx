@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Eye, Trash2, ChevronLeft, ChevronRight, X, Edit, Download } from "lucide-react";
+import {
+  Eye,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import AdminLayout from "../../components/AdminLayout";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import jsPDF from "jspdf";
 
-const AdminOrders = () => {
+const AdminOrdersHistory = () => {
   const [orders, setOrders] = useState([]);
   const [ordersPagination, setOrdersPagination] = useState({
     page: 1,
@@ -24,25 +30,14 @@ const AdminOrders = () => {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [selectedBankMethod, setSelectedBankMethod] = useState(null);
   const [pendingInvoiceItem, setPendingInvoiceItem] = useState(null);
-  const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [calendarOrders, setCalendarOrders] = useState([]);
-  const [calendarLoading, setCalendarLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [tableFilteredOrders, setTableFilteredOrders] = useState(null);
 
   useEffect(() => {
-    // Intentionally only depend on page to avoid ref changes of fetchOrders
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordersPagination.page]);
 
   useEffect(() => {
     fetchPaymentMethods();
   }, []);
-
-  useEffect(() => {
-    fetchCalendarOrders(calendarMonth);
-  }, [calendarMonth]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -63,7 +58,7 @@ const AdminOrders = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=pending`,
+        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=completed`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
@@ -72,9 +67,7 @@ const AdminOrders = () => {
       );
       const data = await response.json();
 
-      // Handle both old format (array) and new format (object with pagination)
       if (Array.isArray(data)) {
-        // Old format - no pagination
         setOrders(data);
         setOrdersPagination((prev) => ({
           ...prev,
@@ -82,7 +75,6 @@ const AdminOrders = () => {
           totalPages: 1,
         }));
       } else {
-        // New format - with pagination
         setOrders(data.orders || []);
         setOrdersPagination((prev) => ({
           ...prev,
@@ -91,7 +83,7 @@ const AdminOrders = () => {
         }));
       }
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error("Error fetching orders history:", error);
       setOrders([]);
       setOrdersPagination((prev) => ({
         ...prev,
@@ -103,43 +95,20 @@ const AdminOrders = () => {
     }
   };
 
-  const fetchCalendarOrders = async (monthDate) => {
-    setCalendarLoading(true);
-    try {
-      const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=1&limit=5000&status=pending`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
-          },
-        }
-      );
-      const data = await response.json();
-
-      const allOrders = Array.isArray(data) ? data : data.orders || [];
-
-      const year = monthDate.getFullYear();
-      const month = monthDate.getMonth();
-
-      const filtered = allOrders.filter((order) => {
-        const rawDate = order.wedding_date || order.shooting_date;
-        if (!rawDate) return false;
-        const d = new Date(rawDate);
-        if (isNaN(d.getTime())) return false;
-        return d.getFullYear() === year && d.getMonth() === month;
-      });
-
-      setCalendarOrders(filtered);
-      setSelectedDate(null);
-    } catch (error) {
-      console.error("Error fetching calendar orders:", error);
-      setCalendarOrders([]);
-      setSelectedDate(null);
-    } finally {
-      setCalendarLoading(false);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "confirmed":
+        return "bg-blue-100 text-blue-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
-
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
@@ -166,7 +135,6 @@ const AdminOrders = () => {
       toast.error("Error memperbarui status pesanan");
     }
   };
-
 
   const handleDeleteOrder = async (orderId) => {
     const confirmed = await new Promise((resolve) => {
@@ -233,21 +201,6 @@ const AdminOrders = () => {
     setShowDetailModal(true);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "confirmed":
-        return "bg-blue-100 text-blue-800";
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   const handleOrdersPageChange = (newPage) => {
     setOrdersPagination((prev) => ({ ...prev, page: newPage }));
   };
@@ -282,66 +235,6 @@ const AdminOrders = () => {
 
     return pages;
   };
-
-  const changeCalendarMonth = (direction) => {
-    setCalendarMonth((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + direction);
-      return newDate;
-    });
-  };
-
-  const getCalendarDays = () => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-    const firstDayOfMonth = new Date(year, month, 1);
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-    const startWeekday = firstDayOfMonth.getDay(); // 0 (Sun) - 6 (Sat)
-
-    const days = [];
-
-    // Leading empty cells for first week
-    for (let i = 0; i < startWeekday; i++) {
-      days.push(null);
-    }
-
-    // Actual days of month
-    for (let d = 1; d <= lastDayOfMonth.getDate(); d++) {
-      days.push(new Date(year, month, d));
-    }
-
-    return days;
-  };
-
-  const bookingsByDate = calendarOrders.reduce((acc, order) => {
-    const rawDate = order.wedding_date || order.shooting_date;
-    if (!rawDate) return acc;
-
-    const dateObj = new Date(rawDate);
-    if (isNaN(dateObj.getTime())) return acc;
-
-    const y = dateObj.getFullYear();
-    const m = dateObj.getMonth() + 1;
-    const d = dateObj.getDate();
-    const key = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(order);
-    return acc;
-  }, {});
-
-  const handleFilterTableBySelectedDate = (dateKey) => {
-    if (!dateKey) return;
-    const ordersForDate = bookingsByDate[dateKey] || [];
-    setTableFilteredOrders(ordersForDate);
-  };
-
-  const handleClearTableFilter = () => {
-    setTableFilteredOrders(null);
-  };
-
-  const tableOrders = tableFilteredOrders ?? orders;
-
 
   const handleEditBookingAmount = (item) => {
     setEditingItem(item);
@@ -393,20 +286,15 @@ const AdminOrders = () => {
   const generateInvoicePDF = (item, selectedBank = null) => {
     const doc = new jsPDF();
 
-    // Hitung lebar halaman dan margin
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
 
-    // Get current domain for website URL
     const currentDomain = window.location.origin;
 
-    // ===== PAGE 1 =====
-    // Company header
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("User Studio Organizer", 20, 20);
 
-    // Company details
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(
@@ -418,7 +306,6 @@ const AdminOrders = () => {
     doc.text("Email: edo19priyatno@gmail.com", 20, 44);
     doc.text(`Website: ${currentDomain}`, 20, 51);
 
-    // Invoice details (right side)
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("INVOICE", 150, 20);
@@ -436,9 +323,12 @@ const AdminOrders = () => {
       37
     );
     const eventDate = item.wedding_date || item.shooting_date;
-    doc.text(`Jatuh Tempo: ${eventDate ? formatDate(eventDate) : '-'}`, 150, 44);
+    doc.text(
+      `Jatuh Tempo: ${eventDate ? formatDate(eventDate) : "-"}`,
+      150,
+      44
+    );
 
-    // Bill To section
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Kepada :", 20, 60);
@@ -449,42 +339,35 @@ const AdminOrders = () => {
     doc.text(item.email, 20, 74);
     doc.text(item.phone, 20, 81);
 
-    // Handle address with text wrapping to prevent breaking
     let addressY = 88;
 
     if (item.address) {
-      // Use actual usable width (page width minus margins)
-      const actualUsableWidth = pageWidth - (margin * 2);
+      const actualUsableWidth = pageWidth - margin * 2;
       doc.text(item.address, margin, addressY, { maxWidth: actualUsableWidth });
 
-      // Hitung tinggi teks untuk spacing yang tepat
       const addressHeight = doc.getTextDimensions(item.address, {
         maxWidth: actualUsableWidth,
       }).h;
       addressY += addressHeight + 5;
     }
 
-    // Service table header - adjust based on address length
     const startY = item.address ? addressY + 8 : 110;
-    doc.setFillColor(52, 152, 219); // Blue background
+    doc.setFillColor(52, 152, 219);
     doc.rect(20, startY, 170, 8, "F");
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255); // White text
+    doc.setTextColor(255, 255, 255);
     doc.text("No.", 25, startY + 6);
     doc.text("Deskripsi", 40, startY + 6);
     doc.text("Jml", 140, startY + 6);
     doc.text("Harga", 170, startY + 6);
 
-    // Reset text color
     doc.setTextColor(0, 0, 0);
 
-    // Service items
     let currentY = startY + 15;
     let itemNumber = 1;
 
-    // Main service item (base price)
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(itemNumber.toString(), 25, currentY);
@@ -492,7 +375,6 @@ const AdminOrders = () => {
     doc.text("1", 140, currentY);
     doc.text(formatRupiah(item.base_price || 0), 170, currentY);
 
-    // Selected items as sub-items
     if (item.selected_items) {
       try {
         const selectedItems = JSON.parse(item.selected_items);
@@ -512,8 +394,11 @@ const AdminOrders = () => {
               0;
 
             const quantity = selectedItem.quantity || 1;
-            const subtotal = (typeof itemPrice === 'number' ? itemPrice : parseFloat(itemPrice) || 0) * quantity;
-            
+            const subtotal =
+              (typeof itemPrice === "number"
+                ? itemPrice
+                : parseFloat(itemPrice) || 0) * quantity;
+
             doc.setFontSize(8);
             doc.text(`  ${itemName}`, 40, currentY);
             doc.text(quantity.toString(), 140, currentY);
@@ -526,20 +411,14 @@ const AdminOrders = () => {
       }
     }
 
-    // Add total service row
     currentY += 8;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("", 25, currentY); // Empty serial number
+    doc.text("", 25, currentY);
     doc.text("Total Harga Layanan:", 40, currentY);
-    doc.text("", 140, currentY); // Empty quantity
-    doc.text(
-      formatRupiah(item.total_amount || 0),
-      170,
-      currentY
-    );
+    doc.text("", 140, currentY);
+    doc.text(formatRupiah(item.total_amount || 0), 170, currentY);
 
-    // Add payment details
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text("Detail Pembayaran:", 20, currentY + 20);
@@ -570,14 +449,12 @@ const AdminOrders = () => {
       currentY + 58
     );
 
-    // Add bank account information
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Rekening Tujuan:", 20, currentY + 65);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    // Use selected bank account if available, otherwise use default
     const bankAccountNumber =
       selectedBank?.account_number ||
       item.selected_bank_account ||
@@ -588,7 +465,6 @@ const AdminOrders = () => {
     doc.text(`Nomor Rekening: ${bankAccountNumber}`, 20, currentY + 75);
     doc.text(`Atas Nama: ${bankAccountName}`, 20, currentY + 82);
 
-    // Add user notes section if available
     let notesY = currentY + 95;
     const notesText = item.notes || item.additional_requests || "";
     if (notesText && notesText.trim()) {
@@ -600,30 +476,26 @@ const AdminOrders = () => {
       doc.setFont("helvetica", "normal");
       notesY += 7;
 
-      // Use full width for notes (same as address width calculation)
-      const actualUsableWidth = pageWidth - (margin * 2);
+      const actualUsableWidth = pageWidth - margin * 2;
       const notesLines = doc.splitTextToSize(notesText, actualUsableWidth);
       notesLines.forEach((line) => {
         doc.text(line, 20, notesY);
         notesY += 5;
       });
 
-      notesY += 15; // Add more space after notes
+      notesY += 15;
     }
 
-    // Position thank you message at the bottom of the page
-    // Calculate the final Y position after all content
-    const finalContentY = notesText && notesText.trim() ? notesY : currentY + 95;
-    const thankYouY = finalContentY + 30; // Add 30mm space after the last content
-    
-    // Set font for thank you message
+    const finalContentY =
+      notesText && notesText.trim() ? notesY : currentY + 95;
+    const thankYouY = finalContentY + 30;
+
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Terima kasih telah memilih layanan kami!", 105, thankYouY, {
       align: "center",
     });
 
-    // Save the PDF
     const fileName = `invoice-order-${item.id}-${
       new Date().toISOString().split("T")[0]
     }.pdf`;
@@ -633,7 +505,7 @@ const AdminOrders = () => {
   return (
     <>
       <Helmet>
-        <title>Kalender Booking - Dashboard Admin</title>
+        <title>History Pesanan - Dashboard Admin</title>
       </Helmet>
 
       <Toaster position="top-right" />
@@ -641,423 +513,233 @@ const AdminOrders = () => {
       <AdminLayout>
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Kalender Booking
+            History Pesanan
           </h1>
           <p className="text-gray-600">
-            Lihat jadwal booking dan pesanan yang masih menunggu.
+            Daftar pesanan yang sudah selesai / diselesaikan.
           </p>
         </div>
 
-        {/* Booking Calendar */}
-        <div className="mb-8 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">
-                  Kalender Booking
-                </h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => changeCalendarMonth(-1)}
-                    className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
-                    title="Bulan sebelumnya"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <span className="text-sm font-medium text-gray-700">
-                    {calendarMonth.toLocaleDateString("id-ID", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </span>
-                  <button
-                    onClick={() => changeCalendarMonth(1)}
-                    className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
-                    title="Bulan berikutnya"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-7 bg-gray-50 text-xs font-semibold text-gray-600">
-                  {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map(
-                    (day) => (
-                      <div
-                        key={day}
-                        className="px-2 py-2 text-center uppercase tracking-wide"
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ID Pesanan
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pelanggan
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Layanan
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tanggal Booking
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Booking Amount
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td
+                        colSpan="8"
+                        className="px-6 py-4 text-center text-gray-500"
                       >
-                        {day}
-                      </div>
-                    )
-                  )}
-                </div>
-                <div className="grid grid-cols-7 text-sm">
-                  {calendarLoading ? (
-                    <div className="col-span-7 flex items-center justify-center py-8">
-                      <span className="text-gray-500 text-sm">
-                        Memuat data booking untuk bulan ini...
-                      </span>
-                    </div>
-                  ) : (
-                    getCalendarDays().map((date, index) => {
-                      if (!date) {
-                        return (
-                          <div
-                            key={`empty-${index}`}
-                            className="h-14 border border-gray-100 bg-gray-50"
-                          />
-                        );
-                      }
-
-                      const y = date.getFullYear();
-                      const m = date.getMonth() + 1;
-                      const d = date.getDate();
-                      const key = `${y}-${String(m).padStart(
-                        2,
-                        "0"
-                      )}-${String(d).padStart(2, "0")}`;
-
-                      const ordersForDay = bookingsByDate[key] || [];
-                      const hasBookings = ordersForDay.length > 0;
-                      const isSelected = selectedDate === key;
-
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => {
-                            setSelectedDate(key);
-                            handleFilterTableBySelectedDate(key);
-                          }}
-                          className={`h-14 border border-gray-100 flex flex-col items-center justify-center relative transition ${
-                            hasBookings
-                              ? "bg-red-50 hover:bg-red-100"
-                              : "hover:bg-gray-50"
-                          } ${isSelected ? "ring-2 ring-primary-500 z-10" : ""}`}
-                        >
-                          <span
-                            className={`text-sm font-medium ${
-                              hasBookings ? "text-red-700" : "text-gray-700"
-                            }`}
+                        Memuat data...
+                      </td>
+                    </tr>
+                  ) : orders.length > 0 ? (
+                    orders.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            #{order.id}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {formatDate(order.created_at)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {order.email}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {order.phone}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.service_name}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatDate(
+                              order.wedding_date || order.shooting_date
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-bold text-primary-600">
+                            {formatRupiah(order.total_amount)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-bold text-primary-600">
+                            {formatRupiah(order.booking_amount)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <select
+                            value={order.status}
+                            onChange={(e) =>
+                              handleStatusUpdate(order.id, e.target.value)
+                            }
+                            className={`px-3 py-1 rounded-full text-sm font-medium border-0 ${getStatusColor(
+                              order.status
+                            )}`}
                           >
-                            {d}
-                          </span>
-                          {hasBookings && (
-                            <span className="mt-1 w-2 h-2 rounded-full bg-red-500" />
-                          )}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-6">
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">
-                {selectedDate
-                  ? `Booking pada ${new Date(
-                      selectedDate
-                    ).toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}`
-                  : "Pilih tanggal untuk melihat booking"}
-              </h3>
-              <div className="max-h-64 overflow-y-auto pr-1 space-y-3">
-                {selectedDate && bookingsByDate[selectedDate] ? (
-                  bookingsByDate[selectedDate].map((order) => (
-                    <div
-                      key={order.id}
-                      className="p-3 rounded-lg border border-gray-200 bg-gray-50"
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-semibold text-gray-800">
-                          {order.name}
-                        </span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {order.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 mb-1">
-                        {order.service_name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Total: {formatRupiah(order.total_amount)}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => handleFilterTableBySelectedDate(selectedDate)}
-                        className="mt-2 text-xs font-semibold text-primary-600 hover:text-primary-700"
+                            <option value="pending">Menunggu</option>
+                            <option value="confirmed">Dikonfirmasi</option>
+                            <option value="completed">Selesai</option>
+                            <option value="cancelled">Dibatalkan</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={() => handleViewDetail(order)}
+                              className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                              title="Lihat Detail"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            {/* <button
+                              onClick={() => handleEditBookingAmount(order)}
+                              className="text-green-600 hover:text-green-700 flex items-center gap-1"
+                              title="Edit Booking Amount"
+                            >
+                              <Edit size={16} />
+                            </button> */}
+                            {/* <button
+                              onClick={() => handleGenerateInvoice(order)}
+                              className="text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                              title="Download Invoice"
+                            >
+                              <Download size={16} />
+                            </button> */}
+                            <button
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="text-red-600 hover:text-red-700 flex items-center gap-1"
+                              title="Hapus"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="8"
+                        className="px-6 py-4 text-center text-gray-500"
                       >
-                        Lihat di tabel
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    {selectedDate
-                      ? "Tidak ada booking pada tanggal ini."
-                      : "Belum ada tanggal yang dipilih."}
-                  </p>
-                )}
-              </div>
+                        Tidak ada pesanan selesai
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
 
-        {/* Orders Table */}
-        <div className="space-y-6">
-            {tableFilteredOrders && selectedDate && (
-              <div className="flex items-center justify-between bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg">
-                <span className="text-sm text-blue-800">
-                  Menampilkan pesanan untuk tanggal{" "}
-                  {new Date(selectedDate).toLocaleDateString("id-ID", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })}
+          {ordersPagination.totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white px-6 py-3 border-t border-gray-200">
+              <div className="flex items-center text-sm text-gray-700">
+                <span>
+                  Menampilkan{" "}
+                  {(ordersPagination.page - 1) * ordersPagination.limit + 1} -{" "}
+                  {Math.min(
+                    ordersPagination.page * ordersPagination.limit,
+                    ordersPagination.total
+                  )}{" "}
+                  dari {ordersPagination.total} pesanan
                 </span>
+              </div>
+              <div className="flex items-center space-x-2">
                 <button
-                  type="button"
-                  onClick={handleClearTableFilter}
-                  className="text-xs font-semibold text-blue-700 hover:text-blue-900"
+                  onClick={() =>
+                    handleOrdersPageChange(ordersPagination.page - 1)
+                  }
+                  disabled={ordersPagination.page === 1}
+                  className="px-3 py-1 rounded-md text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Hapus filter
+                  <ChevronLeft size={16} />
+                </button>
+
+                {getPaginationPages(
+                  ordersPagination.page,
+                  ordersPagination.totalPages
+                ).map((page, index) => {
+                  if (page === "ellipsis") {
+                    return (
+                      <span
+                        key={`ellipsis-${index}`}
+                        className="px-2 text-gray-500"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handleOrdersPageChange(page)}
+                      className={`px-3 py-1 rounded-md text-sm font-medium ${
+                        page === ordersPagination.page
+                          ? "bg-primary-600 text-white"
+                          : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() =>
+                    handleOrdersPageChange(ordersPagination.page + 1)
+                  }
+                  disabled={
+                    ordersPagination.page === ordersPagination.totalPages
+                  }
+                  className="px-3 py-1 rounded-md text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
                 </button>
               </div>
-            )}
-            {/* Orders Table */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID Pesanan
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Pelanggan
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Layanan
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tanggal Booking
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Booking Amount
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {loading ? (
-                      <tr>
-                        <td
-                          colSpan="7"
-                          className="px-6 py-4 text-center text-gray-500"
-                        >
-                          Memuat data...
-                        </td>
-                      </tr>
-                    ) : tableOrders.length > 0 ? (
-                      tableOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              #{order.id}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {formatDate(order.created_at)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {order.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {order.email}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {order.phone}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {order.service_name}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {formatDate(order.wedding_date || order.shooting_date)}
-                          </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-bold text-primary-600">
-                              {formatRupiah(order.total_amount)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-bold text-primary-600">
-                              {formatRupiah(order.booking_amount)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <select
-                              value={order.status}
-                              onChange={(e) =>
-                                handleStatusUpdate(order.id, e.target.value)
-                              }
-                              className={`px-3 py-1 rounded-full text-sm font-medium border-0 ${getStatusColor(
-                                order.status
-                              )}`}
-                            >
-                              <option value="pending">Menunggu</option>
-                              <option value="confirmed">Dikonfirmasi</option>
-                              <option value="completed">Selesai</option>
-                              <option value="cancelled">Dibatalkan</option>
-                            </select>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-3">
-                              <button
-                                onClick={() => handleViewDetail(order)}
-                                className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                                title="Lihat Detail"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleEditBookingAmount(order)
-                                }
-                                className="text-green-600 hover:text-green-700 flex items-center gap-1"
-                                title="Edit Booking Amount"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleGenerateInvoice(order)
-                                }
-                                className="text-purple-600 hover:text-purple-700 flex items-center gap-1"
-                                title="Download Invoice"
-                              >
-                                <Download size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteOrder(order.id)}
-                                className="text-red-600 hover:text-red-700 flex items-center gap-1"
-                                title="Hapus"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="7"
-                          className="px-6 py-4 text-center text-gray-500"
-                        >
-                          Tidak ada pesanan
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
             </div>
+          )}
+        </div>
 
-            {/* Pagination */}
-            {!tableFilteredOrders && ordersPagination.totalPages > 1 && (
-              <div className="flex items-center justify-between bg-white px-6 py-3 border-t border-gray-200">
-                <div className="flex items-center text-sm text-gray-700">
-                  <span>
-                    Menampilkan{" "}
-                    {(ordersPagination.page - 1) * ordersPagination.limit + 1} -{" "}
-                    {Math.min(
-                      ordersPagination.page * ordersPagination.limit,
-                      ordersPagination.total
-                    )}{" "}
-                    dari {ordersPagination.total} pesanan
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() =>
-                      handleOrdersPageChange(ordersPagination.page - 1)
-                    }
-                    disabled={ordersPagination.page === 1}
-                    className="px-3 py-1 rounded-md text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-
-                  {getPaginationPages(
-                    ordersPagination.page,
-                    ordersPagination.totalPages
-                  ).map((page, index) => {
-                    if (page === "ellipsis") {
-                      return (
-                        <span
-                          key={`ellipsis-${index}`}
-                          className="px-2 text-gray-500"
-                        >
-                          ...
-                        </span>
-                      );
-                    }
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => handleOrdersPageChange(page)}
-                        className={`px-3 py-1 rounded-md text-sm font-medium ${
-                          page === ordersPagination.page
-                            ? "bg-primary-600 text-white"
-                            : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    onClick={() =>
-                      handleOrdersPageChange(ordersPagination.page + 1)
-                    }
-                    disabled={
-                      ordersPagination.page === ordersPagination.totalPages
-                    }
-                    className="px-3 py-1 rounded-md text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-        {/* Order Detail Modal */}
         {showDetailModal && selectedOrder && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -1123,7 +805,10 @@ const AdminOrders = () => {
                           Tanggal Booking:
                         </span>
                         <p className="text-gray-900">
-                          {formatDate(selectedOrder.wedding_date || selectedOrder.shooting_date)}
+                          {formatDate(
+                            selectedOrder.wedding_date ||
+                              selectedOrder.shooting_date
+                          )}
                         </p>
                       </div>
                       <div>
@@ -1167,7 +852,6 @@ const AdminOrders = () => {
                         const items = JSON.parse(
                           selectedOrder.selected_items || "[]"
                         );
-                        console.log("Selected items structure:", items); // Debug log
 
                         if (!Array.isArray(items) || items.length === 0) {
                           return (
@@ -1178,13 +862,11 @@ const AdminOrders = () => {
                         }
 
                         return items.map((item, index) => {
-                          // Handle different item structures
                           const itemName =
                             item.name ||
                             item.item_name ||
                             item.title ||
                             "Item tidak dikenal";
-                          // Check for all possible price fields in order of preference
                           const itemPrice =
                             item.final_price ||
                             item.item_price ||
@@ -1192,7 +874,10 @@ const AdminOrders = () => {
                             item.custom_price ||
                             0;
                           const quantity = item.quantity || 1;
-                          const subtotal = (typeof itemPrice === 'number' ? itemPrice : parseFloat(itemPrice) || 0) * quantity;
+                          const subtotal =
+                            (typeof itemPrice === "number"
+                              ? itemPrice
+                              : parseFloat(itemPrice) || 0) * quantity;
 
                           return (
                             <div
@@ -1200,7 +885,12 @@ const AdminOrders = () => {
                               className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
                             >
                               <span className="text-gray-900">
-                                {itemName} {quantity > 1 && <span className="text-gray-500">(x{quantity})</span>}
+                                {itemName}{" "}
+                                {quantity > 1 && (
+                                  <span className="text-gray-500">
+                                    (x{quantity})
+                                  </span>
+                                )}
                               </span>
                               <div className="text-right">
                                 {quantity > 1 && (
@@ -1287,8 +977,6 @@ const AdminOrders = () => {
           </div>
         )}
 
-
-        {/* Edit Booking Amount Modal */}
         {showEditBookingModal && editingItem && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
@@ -1345,7 +1033,6 @@ const AdminOrders = () => {
           </div>
         )}
 
-        {/* Bank Selection Modal */}
         {showBankSelectionModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
@@ -1440,4 +1127,5 @@ const AdminOrders = () => {
   );
 };
 
-export default AdminOrders;
+export default AdminOrdersHistory;
+

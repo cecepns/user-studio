@@ -106,7 +106,7 @@ const ServiceCard = ({ service, index }) => {
             `https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=400`
           }
           alt={service.name}
-          className="w-full h-48 object-cover"
+          className="w-full h-64 md:h-96 object-cover"
         />
         <div className="absolute bottom-2 text-xs left-2 px-4 py-1 rounded-full bg-white text-blue-600">
           All Package <b>{formatPrice(service.base_price)}</b>

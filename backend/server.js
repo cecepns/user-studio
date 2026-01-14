@@ -578,9 +578,24 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const { status } = req.query;
+
+    // Optional status filter
+    const whereClauses = [];
+    const params = [];
+
+    if (status) {
+      whereClauses.push('status = ?');
+      params.push(status);
+    }
+
+    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
     
     // Get total count
-    const [countResult] = await db.execute('SELECT COUNT(*) as total FROM orders');
+    const [countResult] = await db.execute(
+      `SELECT COUNT(*) as total FROM orders ${whereSql}`,
+      params
+    );
     const total = countResult[0].total;
     
     // Get paginated orders with service base_price
@@ -588,9 +603,10 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
       SELECT o.*, s.base_price 
       FROM orders o 
       LEFT JOIN services s ON o.service_id = s.id 
+      ${whereSql ? whereSql.replace(/status/g, 'o.status') : ''}
       ORDER BY o.created_at DESC 
       LIMIT ? OFFSET ?
-    `, [limit, offset]);
+    `, [...params, limit, offset]);
     
     res.json({
       orders,
