@@ -13,10 +13,12 @@ const formatPrice = (price) => {
 const Services = () => {
   const [services, setServices] = useState([]);
   const [heroContent, setHeroContent] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     fetchServices();
     fetchHeroContent();
+    fetchSettings();
   }, []);
 
   const fetchServices = async () => {
@@ -42,6 +44,19 @@ const Services = () => {
       }
     } catch (error) {
       console.error("Error fetching hero content:", error);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch(
+        'https://api-inventory.isavralabel.com/user-studio/api/settings'
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      setSettings(data);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
     }
   };
 
@@ -83,7 +98,14 @@ const Services = () => {
           <div className="container-custom">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {services.map((service, index) => (
-                <ServiceCard key={service.id} service={service} index={index} />
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  index={index}
+                  allPackageLabel={
+                    (settings && settings.services_all_package_label) || 'All Package'
+                  }
+                />
               ))}
             </div>
           </div>
@@ -93,7 +115,7 @@ const Services = () => {
   );
 };
 
-const ServiceCard = ({ service, index }) => {
+const ServiceCard = ({ service, index, allPackageLabel }) => {
   return (
     <div
       className="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-slide-up"
@@ -109,7 +131,8 @@ const ServiceCard = ({ service, index }) => {
           className="w-full h-64 md:h-96 object-cover"
         />
         <div className="absolute bottom-2 text-xs left-2 px-4 py-1 rounded-full bg-white text-blue-600">
-          All Package <b>{formatPrice(service.base_price)}</b>
+          {allPackageLabel}{' '}
+          <b>{formatPrice(service.base_price)}</b>
         </div>
       </div>
       <div className="p-6">
@@ -169,6 +192,7 @@ const ServiceCard = ({ service, index }) => {
 ServiceCard.propTypes = {
   service: PropTypes.object.isRequired,
   index: PropTypes.number.isRequired,
+  allPackageLabel: PropTypes.string.isRequired,
 };
 
 export default Services;

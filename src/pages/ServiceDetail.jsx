@@ -41,6 +41,7 @@ const ServiceDetail = () => {
   const [selectedItems, setSelectedItems] = useState([]); // Array of { id, name, price, quantity, ... }
   const [orderData, setOrderData] = useState(null);
   const [buttonContent, setButtonContent] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     AOS.init({
@@ -49,8 +50,15 @@ const ServiceDetail = () => {
       once: true,
       mirror: false,
     });
+  }, []);
+
+  useEffect(() => {
     fetchServiceData();
     fetchButtonContent();
+    fetchSettings();
+    // We intentionally only depend on `id` here and not on the fetch helpers
+    // to avoid re-creating them on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchServiceData = async () => {
@@ -86,6 +94,17 @@ const ServiceDetail = () => {
       }
     } catch (error) {
       console.error('Error fetching button content:', error);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/settings');
+      if (!response.ok) return;
+      const data = await response.json();
+      setSettings(data);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
     }
   };
 
@@ -460,6 +479,19 @@ const ServiceDetail = () => {
           <BookingModal
             service={service}
             selectedItems={selectedItems}
+            studioOptions={(() => {
+              try {
+                if (settings?.studio_options) {
+                  const parsed = JSON.parse(settings.studio_options);
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                  }
+                }
+              } catch (e) {
+                console.error('Error parsing studio options:', e);
+              }
+              return ['Studio 1', 'Studio 2'];
+            })()}
             onClose={() => setShowBookingModal(false)}
             onOrderSuccess={(data) => {
               setOrderData(data);
@@ -641,7 +673,7 @@ const PaymentInstructionsModal = ({ orderData, onClose }) => {
   );
 };
 
-const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
+const BookingModal = ({ service, selectedItems, studioOptions, onClose, onOrderSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -820,13 +852,17 @@ const BookingModal = ({ service, selectedItems, onClose, onOrderSuccess }) => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="">Pilih Studio</option>
-                      <option value="Studio 1">Studio 1</option>
-                      <option value="Studio 2">Studio 2</option>
+                      {Array.isArray(studioOptions) &&
+                        studioOptions.map((studioName) => (
+                          <option key={studioName} value={studioName}>
+                            {studioName}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah Booking</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pembayaran Booking</label>
                     <input
                       type="number"
                       name="booking_amount"
@@ -975,6 +1011,7 @@ BookingModal.propTypes = {
   ).isRequired,
   onClose: PropTypes.func.isRequired,
   onOrderSuccess: PropTypes.func.isRequired,
+  studioOptions: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default ServiceDetail; 

@@ -1,6 +1,30 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 const Footer = () => {
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/settings');
+        if (!response.ok) return;
+        const data = await response.json();
+        setSettings(data);
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  const addressLine1 =
+    settings?.contact_address_line1 || 'Jl. Raya panongan Kec. Panongan Kab. Tangerang';
+  const addressLine2 = settings?.contact_address_line2 || 'Provinsi Banten';
+  const phone = settings?.contact_phone || '089646829459';
+  const email = settings?.contact_email || 'edo19priyatno@gmail.com';
+
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container-custom section-padding">
@@ -51,10 +75,10 @@ const Footer = () => {
           <div>
             <h3 className=" text-lg font-semibold mb-4">Informasi Kontak</h3>
             <div className="space-y-2 text-gray-400">
-              <p>Jl. Raya panongan Kec. Panongan Kab. Tangerang</p>
-              <p>Provinsi Banten</p>
-              <p>Telepon: 089646829459</p>
-              <p>Email: edo19priyatno@gmail.com</p>
+              <p>{addressLine1}</p>
+              <p>{addressLine2}</p>
+              <p>Telepon: {phone}</p>
+              <p>Email: {email}</p>
             </div>
           </div>
         </div>

@@ -229,7 +229,8 @@ const PaymentMethodModal = ({ method, onSubmit, onClose }) => {
     type: method?.type || 'bank',
     name: method?.name || '',
     account_number: method?.account_number || '',
-    details: method?.details || ''
+    details: method?.details || '',
+    qris_image_url: method?.qris_image_url || ''
   });
 
   const handleSubmit = (e) => {
@@ -320,6 +321,25 @@ const PaymentMethodModal = ({ method, onSubmit, onClose }) => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 ></textarea>
               </div>
+
+              {formData.type === 'qris' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    URL Gambar QRIS
+                  </label>
+                  <input
+                    type="url"
+                    name="qris_image_url"
+                    value={formData.qris_image_url}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com/qris-image.png"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Jika diisi, gambar QRIS akan ditampilkan pada halaman instruksi pembayaran.
+                  </p>
+                </div>
+              )}
 
               <div className="flex justify-end space-x-4 pt-6">
                 <button

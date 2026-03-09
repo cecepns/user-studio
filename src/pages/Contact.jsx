@@ -13,9 +13,11 @@ const Contact = () => {
     message: ''
   });
   const [heroContent, setHeroContent] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     fetchHeroContent();
+    fetchSettings();
   }, []);
 
   const fetchHeroContent = async () => {
@@ -27,6 +29,17 @@ const Contact = () => {
       }
     } catch (error) {
       console.error('Error fetching hero content:', error);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/settings');
+      if (!response.ok) return;
+      const data = await response.json();
+      setSettings(data);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
     }
   };
 
@@ -196,7 +209,11 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-800 mb-1">Alamat</h3>
-                      <p className="text-gray-600">Jl. Raya panongan Kec. Panongan Kab. Tangerang<br />Provinsi Banten</p>
+                      <p className="text-gray-600">
+                        {(settings && settings.contact_address_line1) || 'Jl. Raya panongan Kec. Panongan Kab. Tangerang'}
+                        <br />
+                        {(settings && settings.contact_address_line2) || 'Provinsi Banten'}
+                      </p>
                     </div>
                   </div>
                   
@@ -208,7 +225,9 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-800 mb-1">Telepon</h3>
-                      <p className="text-gray-600">089646829459</p>
+                      <p className="text-gray-600">
+                        {(settings && settings.contact_phone) || '089646829459'}
+                      </p>
                     </div>
                   </div>
                   
@@ -220,7 +239,9 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-800 mb-1">Email</h3>
-                      <p className="text-gray-600">edo19priyatno@gmail.com</p>
+                      <p className="text-gray-600">
+                        {(settings && settings.contact_email) || 'edo19priyatno@gmail.com'}
+                      </p>
                     </div>
                   </div>
                   
@@ -244,7 +265,10 @@ const Contact = () => {
                 {/* Google Maps */}
                 <div className="mt-8">
                   <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3965.688906306652!2d106.532421074991!3d-6.304542493684667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zNsKwMTgnMTYuNCJTIDEwNsKwMzInMDYuMCJF!5e0!3m2!1sen!2sid!4v1753360840035!5m2!1sen!2sid" 
+                    src={
+                      (settings && settings.contact_maps_embed) ||
+                      'https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3965.688906306652!2d106.532421074991!3d-6.304542493684667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zNsKwMTgnMTYuNCJTIDEwNsKwMzInMDYuMCJF!5e0!3m2!1sen!2sid!4v1753360840035!5m2!1sen!2sid'
+                    }
                     width="100%" 
                     height="300" 
                     style={{border:0}} 

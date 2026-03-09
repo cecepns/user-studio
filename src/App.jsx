@@ -26,6 +26,7 @@ import AdminContactMessages from './pages/admin/AdminContactMessages';
 import AdminContent from './pages/admin/AdminContent';
 import AdminServiceCards from './pages/admin/AdminServiceCards';
 import AdminServiceFeatures from './pages/admin/AdminServiceFeatures';
+import AdminSettings from './pages/admin/AdminSettings';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -85,6 +86,11 @@ function App() {
             <Route path="/admin/content" element={
               <ProtectedRoute>
                 <AdminContent />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <ProtectedRoute>
+                <AdminSettings />
               </ProtectedRoute>
             } />
             <Route path="/admin/service-cards" element={

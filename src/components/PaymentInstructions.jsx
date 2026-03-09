@@ -5,9 +5,11 @@ const PaymentInstructions = ({ totalAmount, bookingAmount, onComplete, onBack, o
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     fetchPaymentMethods();
+    fetchSettings();
   }, []);
 
   const fetchPaymentMethods = async () => {
@@ -28,8 +30,19 @@ const PaymentInstructions = ({ totalAmount, bookingAmount, onComplete, onBack, o
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/settings');
+      if (!response.ok) return;
+      const data = await response.json();
+      setSettings(data);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
+
   const handleWhatsAppContact = () => {
-    const phoneNumber = '6289646829459';
+    const phoneNumber = settings?.payment_whatsapp_number || '6289646829459';
     const message = `Halo! Saya sudah melakukan pemesanan dengan total Rp ${totalAmount.toLocaleString('id-ID')} dan booking amount Rp ${bookingAmount.toLocaleString('id-ID')}. Mohon konfirmasi pembayaran saya.`;
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -106,6 +119,19 @@ const PaymentInstructions = ({ totalAmount, bookingAmount, onComplete, onBack, o
               </h4>
               
               <div className="space-y-3">
+                {selectedMethod.type === 'qris' && selectedMethod.qris_image_url && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">QRIS:</span>
+                    <div className="mt-2">
+                      <img
+                        src={selectedMethod.qris_image_url}
+                        alt="QRIS"
+                        className="max-w-xs w-full border rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {selectedMethod.account_number && (
                   <div>
                     <span className="text-sm font-medium text-gray-600">Nomor Rekening:</span>

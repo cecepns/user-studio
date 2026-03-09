@@ -1,10 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const WhatsAppButton = () => {
   const [isHovered, setIsHovered] = useState(false);
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/settings');
+        if (!response.ok) return;
+        const data = await response.json();
+        setSettings(data);
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   const handleWhatsAppClick = () => {
-    const phoneNumber = '6289646829459';
+    const phoneNumber = settings?.payment_whatsapp_number || '6289646829459';
     const message = 'Halo! Saya tertarik dengan layanan pernikahan Anda. Bisa saya tanya-tanya lebih lanjut?';
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');

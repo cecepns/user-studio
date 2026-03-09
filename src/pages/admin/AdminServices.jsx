@@ -512,6 +512,7 @@ const ServiceModal = ({ service, onSubmit, onClose }) => {
     name: service?.name || '',
     description: service?.description || '',
     base_price: service?.base_price || '',
+    sort_order: service?.sort_order ?? 0,
     images: initialImages
   });
 
@@ -532,6 +533,7 @@ const ServiceModal = ({ service, onSubmit, onClose }) => {
       id: service?.id,
       base_price: parseFloat(formData.base_price),
       image: primaryImage,
+       sort_order: parseInt(formData.sort_order, 10) || 0,
       images
     });
   };
@@ -579,6 +581,21 @@ const ServiceModal = ({ service, onSubmit, onClose }) => {
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Urutan Layanan</label>
+                <input
+                  type="number"
+                  value={formData.sort_order}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sort_order: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Layanan dengan urutan lebih kecil akan tampil lebih dulu.
+                </p>
               </div>
 
               <div>

@@ -144,7 +144,7 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
 // Services routes
 app.get('/api/services', async (req, res) => {
   try {
-    const [services] = await db.execute('SELECT * FROM services ORDER BY created_at DESC');
+    const [services] = await db.execute('SELECT * FROM services ORDER BY sort_order, created_at DESC');
 
     if (services.length === 0) {
       return res.json([]);
@@ -203,12 +203,12 @@ app.get('/api/services/:id', async (req, res) => {
 });
 
 app.post('/api/services', authenticateToken, async (req, res) => {
-  const { name, description, base_price, image, images } = req.body;
+  const { name, description, base_price, image, images, sort_order } = req.body;
   
   try {
     const [result] = await db.execute(
-      'INSERT INTO services (name, description, base_price, image) VALUES (?, ?, ?, ?)',
-      [name, description, base_price, image]
+      'INSERT INTO services (name, description, base_price, image, sort_order) VALUES (?, ?, ?, ?, ?)',
+      [name, description, base_price, image, sort_order ?? 0]
     );
 
     const serviceId = result.insertId;
@@ -240,13 +240,13 @@ app.post('/api/services', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/services/:id', authenticateToken, async (req, res) => {
-  const { name, description, base_price, image, images } = req.body;
+  const { name, description, base_price, image, images, sort_order } = req.body;
   const { id } = req.params;
   
   try {
     const [result] = await db.execute(
-      'UPDATE services SET name = ?, description = ?, base_price = ?, image = ? WHERE id = ?',
-      [name, description, base_price, image, id]
+      'UPDATE services SET name = ?, description = ?, base_price = ?, image = ?, sort_order = ? WHERE id = ?',
+      [name, description, base_price, image, sort_order ?? 0, id]
     );
     
     if (result.affectedRows === 0) {
@@ -520,12 +520,12 @@ app.get('/api/payment-methods', async (req, res) => {
 });
 
 app.post('/api/payment-methods', authenticateToken, async (req, res) => {
-  const { type, name, account_number, details } = req.body;
+  const { type, name, account_number, details, qris_image_url } = req.body;
   
   try {
     const [result] = await db.execute(
-      'INSERT INTO payment_methods (type, name, account_number, details) VALUES (?, ?, ?, ?)',
-      [type, name, account_number, details]
+      'INSERT INTO payment_methods (type, name, account_number, details, qris_image_url) VALUES (?, ?, ?, ?, ?)',
+      [type, name, account_number, details, qris_image_url || null]
     );
     res.json({ id: result.insertId, message: 'Payment method created successfully' });
   } catch (error) {
@@ -535,13 +535,13 @@ app.post('/api/payment-methods', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/payment-methods/:id', authenticateToken, async (req, res) => {
-  const { type, name, account_number, details } = req.body;
+  const { type, name, account_number, details, qris_image_url } = req.body;
   const { id } = req.params;
   
   try {
     const [result] = await db.execute(
-      'UPDATE payment_methods SET type = ?, name = ?, account_number = ?, details = ? WHERE id = ?',
-      [type, name, account_number, details, id]
+      'UPDATE payment_methods SET type = ?, name = ?, account_number = ?, details = ?, qris_image_url = ? WHERE id = ?',
+      [type, name, account_number, details, qris_image_url || null, id]
     );
     
     if (result.affectedRows === 0) {
@@ -1014,6 +1014,60 @@ app.get('/api/content-sections/:sectionName', async (req, res) => {
     res.json(section);
   } catch (error) {
     console.error('Content section error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+// Site settings routes
+app.get('/api/settings', async (req, res) => {
+  try {
+    const [rows] = await db.execute('SELECT setting_key, setting_value FROM site_settings');
+    const settings = rows.reduce((acc, row) => {
+      acc[row.setting_key] = row.setting_value;
+      return acc;
+    }, {});
+    res.json(settings);
+  } catch (error) {
+    console.error('Settings error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.get('/api/settings/:key', async (req, res) => {
+  const { key } = req.params;
+  try {
+    const [rows] = await db.execute(
+      'SELECT setting_key, setting_value FROM site_settings WHERE setting_key = ?',
+      [key]
+    );
+    const setting = rows[0];
+    if (!setting) {
+      return res.status(404).json({ message: 'Setting not found' });
+    }
+    res.json(setting);
+  } catch (error) {
+    console.error('Setting detail error:', error);
+    res.status(500).json({ message: 'Database error' });
+  }
+});
+
+app.put('/api/settings/:key', authenticateToken, async (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+
+  if (typeof value === 'undefined') {
+    return res.status(400).json({ message: 'Value is required' });
+  }
+
+  try {
+    await db.execute(
+      `INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [key, String(value)]
+    );
+    res.json({ message: 'Setting saved successfully' });
+  } catch (error) {
+    console.error('Save setting error:', error);
     res.status(500).json({ message: 'Database error' });
   }
 });
