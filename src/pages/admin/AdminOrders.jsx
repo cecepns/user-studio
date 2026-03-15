@@ -440,7 +440,29 @@ const AdminOrders = () => {
     setShowBankSelectionModal(true);
   };
 
-  const generateInvoicePDF = (item, selectedBank = null) => {
+  const loadImageAsDataUrl = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL("image/png");
+          resolve(dataUrl);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      img.onerror = (err) => reject(err);
+      img.src = url;
+    });
+  };
+
+  const generateInvoicePDFInternal = (item, selectedBank = null, qrisImageDataUrl = null) => {
     const doc = new jsPDF();
 
     // Hitung lebar halaman dan margin
@@ -508,19 +530,23 @@ const AdminOrders = () => {
       doc.text("-", 150, 50);
     }
 
-    // Bill To section
+    // Bill To section (dynamic position under company details)
+    const billTopY = companyY + 10;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Kepada :", 20, 60);
+    doc.text("Kepada :", 20, billTopY);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(item.name, 20, 67);
-    doc.text(item.email, 20, 74);
-    doc.text(item.phone, 20, 81);
+    const nameY = billTopY + 7;
+    const emailY = nameY + 7;
+    const phoneY = emailY + 7;
+    doc.text(item.name, 20, nameY);
+    doc.text(item.email, 20, emailY);
+    doc.text(item.phone, 20, phoneY);
 
     // Handle address with text wrapping to prevent breaking
-    let addressY = 88;
+    let addressY = phoneY + 7;
 
     if (item.address) {
       // Use actual usable width (page width minus margins)
@@ -610,57 +636,77 @@ const AdminOrders = () => {
     );
 
     // Add payment details
+    const detailTitleY = currentY + 20;
+    const detailFirstLineY = currentY + 30;
+
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("Detail Pembayaran:", 20, currentY + 20);
+    doc.text("Detail Pembayaran:", 20, detailTitleY);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
+    // Harga dasar & total
     doc.text(
       `Harga Layanan: ${formatRupiah(item.base_price || 0)}`,
       20,
-      currentY + 30
+      detailFirstLineY
     );
     doc.text(
       `Total Harga Layanan: ${formatRupiah(item.total_amount || 0)}`,
       20,
-      currentY + 37
+      detailFirstLineY + 7
     );
 
-    const isQris = selectedBank?.type === "qris";
-    doc.text(
-      `Metode Pembayaran: ${isQris ? "QRIS" : "Transfer Bank"}`,
-      20,
-      currentY + 44
-    );
-
-    let paymentDetailY = currentY + 51;
-    if (isQris && selectedBank?.qris_image_url) {
-      doc.text(
-        `URL QRIS: ${selectedBank.qris_image_url}`,
-        20,
-        paymentDetailY
-      );
-      paymentDetailY += 7;
-    }
-
+    // Biaya booking & sisa pembayaran langsung di bawah total
     doc.text(
       `Biaya Booking: ${formatRupiah(item.booking_amount || 0)}`,
       20,
-      paymentDetailY
+      detailFirstLineY + 14
     );
     doc.text(
       `Sisa Pembayaran: ${formatRupiah(
         (item.total_amount || 0) - (item.booking_amount || 0)
       )}`,
       20,
-      paymentDetailY + 7
+      detailFirstLineY + 21
     );
 
-    // Add bank account information
+    const isQris = selectedBank?.type === "qris";
+    doc.text(
+      `Metode Pembayaran: ${isQris ? "QRIS" : "Transfer Bank"}`,
+      20,
+      detailFirstLineY + 28
+    );
+
+    let paymentDetailY = detailFirstLineY + 35;
+
+    if (isQris && qrisImageDataUrl) {
+      // Tampilkan preview QRIS di sisi kiri bawah detail pembayaran
+      const qrWidth = 40;
+      const qrHeight = 50; // sedikit lebih pendek agar tidak ter-stretch
+      doc.addImage(
+        qrisImageDataUrl,
+        "PNG",
+        20,
+        paymentDetailY,
+        qrWidth,
+        qrHeight
+      );
+      paymentDetailY += qrHeight + 5;
+    }
+
+    // Base Y untuk bagian setelah detail pembayaran
+    const infoBaseY = paymentDetailY + 10;
+
+    // Add bank / QRIS information
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Rekening Tujuan:", 20, currentY + 65);
+    if (!isQris) {
+      doc.text("Rekening Tujuan:", 20, infoBaseY);
+    } else {
+      // Sedikit dinaikkan agar lebih dekat dengan gambar QRIS
+      doc.text("QRIS Atas Nama:", 20, infoBaseY - 3);
+    }
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -672,14 +718,21 @@ const AdminOrders = () => {
       "1234567890";
     const bankAccountName =
       selectedBank?.name || item.bank_account_name || "User Studio Organizer";
-    doc.text(`Nomor Rekening: ${bankAccountNumber}`, 20, currentY + 75);
-    doc.text(`Atas Nama: ${bankAccountName}`, 20, currentY + 82);
 
-    // Fixed booking notes
-    let notesY = currentY + 95;
+    if (!isQris) {
+      doc.text(`Nomor Rekening: ${bankAccountNumber}`, 20, infoBaseY + 5);
+      doc.text(`Atas Nama: ${bankAccountName}`, 20, infoBaseY + 12);
+    } else {
+      // Untuk QRIS hanya tampilkan atas nama (sedikit lebih dekat ke label)
+      doc.text(`Atas Nama: ${bankAccountName}`, 20, infoBaseY + 4);
+    }
+
+    // Fixed booking notes - kolom kanan, sejajar dengan detail pembayaran title
+    const notesX = 120;
+    let notesY = detailTitleY;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Note:", 20, notesY);
+    doc.text("Note:", notesX, notesY);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     notesY += 7;
@@ -689,9 +742,13 @@ const AdminOrders = () => {
       "Wajib konfirmasi admin jika ada perubahan.",
       "Dp hangus Jika melewati atau tidak hadir waktu sesi foto.",
     ];
+    const maxNoteWidth = pageWidth - notesX - margin;
     fixedNotes.forEach((line) => {
-      doc.text(`• ${line}`, 20, notesY);
-      notesY += 5;
+      const wrapped = doc.splitTextToSize(`• ${line}`, maxNoteWidth);
+      wrapped.forEach((wrappedLine) => {
+        doc.text(wrappedLine, notesX, notesY);
+        notesY += 5;
+      });
     });
 
     // Add user notes section if available
@@ -700,27 +757,27 @@ const AdminOrders = () => {
       notesY += 10;
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text("Catatan Tambahan:", 20, notesY);
+      doc.text("Catatan Tambahan:", notesX, notesY);
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       notesY += 7;
 
-      // Use full width for notes (same as address width calculation)
-      const actualUsableWidth = pageWidth - margin * 2;
+      // Use remaining width for additional notes
+      const actualUsableWidth = pageWidth - notesX - margin;
       const notesLines = doc.splitTextToSize(notesText, actualUsableWidth);
       notesLines.forEach((line) => {
-        doc.text(line, 20, notesY);
+        doc.text(line, notesX, notesY);
         notesY += 5;
       });
 
       notesY += 15; // Add more space after notes
     }
 
-    // Position thank you message at the bottom of the page
-    const thankYouY = notesY + 10;
-    
-    // Set font for thank you message
+    // Position thank you message at bottom margin of page
+    const pageHeight = doc.internal.pageSize.getHeight();
+    // Turunkan sedikit lagi agar lebih dekat ke bawah halaman
+    const thankYouY = pageHeight - margin + 5;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Terima kasih telah memilih layanan kami!", 105, thankYouY, {
@@ -732,6 +789,18 @@ const AdminOrders = () => {
       new Date().toISOString().split("T")[0]
     }.pdf`;
     doc.save(fileName);
+  };
+
+  const generateInvoicePDF = async (item, selectedBank = null) => {
+    let qrisImageDataUrl = null;
+    if (selectedBank?.type === "qris" && selectedBank.qris_image_url) {
+      try {
+        qrisImageDataUrl = await loadImageAsDataUrl(selectedBank.qris_image_url);
+      } catch (error) {
+        console.error("Error loading QRIS image:", error);
+      }
+    }
+    generateInvoicePDFInternal(item, selectedBank, qrisImageDataUrl);
   };
 
   return (
@@ -1481,9 +1550,9 @@ const AdminOrders = () => {
                     Batal
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (pendingInvoiceItem) {
-                        generateInvoicePDF(
+                        await generateInvoicePDF(
                           pendingInvoiceItem,
                           selectedBankMethod
                         );
