@@ -292,7 +292,14 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
 ('contact_maps_embed', 'https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3965.688906306652!2d106.532421074991!3d-6.304542493684667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zNsKwMTgnMTYuNCJTIDEwNsKwMzInMDYuMCJF!5e0!3m2!1sen!2sid!4v1753360840035!5m2!1sen!2sid'),
 ('payment_whatsapp_number', '6289646829459'),
 ('services_all_package_label', 'All Package'),
-('studio_options', '["Studio 1","Studio 2"]');
+('studio_options', '["Studio 1","Studio 2"]'),
+('footer_brand_title', 'User Studio'),
+('footer_brand_subtitle', 'PT User Wedding Organizer'),
+('footer_brand_description', 'Menciptakan momen magis dan kenangan tak terlupakan untuk hari spesial Anda.'),
+('footer_instagram_accounts', '[{"handle":"@user_wedding_organizer","url":"https://www.instagram.com/user_wedding_organizer/"}]'),
+('service_detail_cta_title_template', 'Siap Memesan {service_name}?'),
+('service_detail_cta_description', 'Jangan ragu untuk menghubungi kami. Tim kami siap membantu Anda merencanakan hari pernikahan yang sempurna.'),
+('service_detail_info_notes', 'Datang minimal 1 jam sebelum waktu foto.\nSepatu / sandal wajib bersih, dipakai hanya saat sesi foto saja.\nWajib konfirmasi admin jika ada perubahan.\nDp hangus Jika melewati atau tidak hadir waktu sesi foto.');
 
 -- Sample articles
 INSERT IGNORE INTO articles (title, content, excerpt, image, category) VALUES 

@@ -29,7 +29,7 @@ const AdminOrders = () => {
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [tableFilteredOrders, setTableFilteredOrders] = useState(null);
-  const [tableFilterDate, setTableFilterDate] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     // Intentionally only depend on page to avoid ref changes of fetchOrders
@@ -39,6 +39,23 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchPaymentMethods();
+  }, []);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch(
+          "https://api-inventory.isavralabel.com/user-studio/api/settings"
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        setSettings(data);
+      } catch (error) {
+        console.error("Error fetching settings for invoices:", error);
+      }
+    };
+
+    fetchSettings();
   }, []);
 
   useEffect(() => {
@@ -367,12 +384,10 @@ const AdminOrders = () => {
     if (!dateKey) return;
     const ordersForDate = bookingsByDate[dateKey] || [];
     setTableFilteredOrders(ordersForDate);
-    setTableFilterDate(dateKey);
   };
 
   const handleClearTableFilter = () => {
     setTableFilteredOrders(null);
-    setTableFilterDate(null);
   };
 
   const tableOrders = tableFilteredOrders ?? orders;
@@ -435,23 +450,38 @@ const AdminOrders = () => {
     // Get current domain for website URL
     const currentDomain = window.location.origin;
 
+    const companyName = settings?.footer_brand_title || "User Studio Organizer";
+    const companySubtitle = settings?.footer_brand_subtitle || "";
+    const addressLine1 =
+      settings?.contact_address_line1 ||
+      "Jl. Raya panongan Kec. Panongan Kab. Tangerang";
+    const addressLine2 = settings?.contact_address_line2 || "Provinsi Banten";
+    const companyPhone = settings?.contact_phone || "089646829459";
+    const companyEmail = settings?.contact_email || "edo19priyatno@gmail.com";
+
     // ===== PAGE 1 =====
     // Company header
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("User Studio Organizer", 20, 20);
+    doc.text(companyName, 20, 20);
 
     // Company details
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(
-      "Jl. Raya panongan Kec. Panongan Kab. Tangerang Provinsi Banten",
-      20,
-      30
-    );
-    doc.text("Telephone: 089646829459", 20, 37);
-    doc.text("Email: edo19priyatno@gmail.com", 20, 44);
-    doc.text(`Website: ${currentDomain}`, 20, 51);
+    let companyY = 27;
+    if (companySubtitle) {
+      doc.text(companySubtitle, 20, companyY);
+      companyY += 7;
+    }
+    doc.text(addressLine1, 20, companyY);
+    companyY += 7;
+    doc.text(addressLine2, 20, companyY);
+    companyY += 7;
+    doc.text(`Telephone: ${companyPhone}`, 20, companyY);
+    companyY += 7;
+    doc.text(`Email: ${companyEmail}`, 20, companyY);
+    companyY += 7;
+    doc.text(`Website: ${currentDomain}`, 20, companyY);
 
     // Invoice details (right side)
     doc.setFontSize(12);
@@ -471,7 +501,12 @@ const AdminOrders = () => {
       37
     );
     const eventDate = item.wedding_date || item.shooting_date;
-    doc.text(`Jatuh Tempo: ${eventDate ? formatDateTime(eventDate) : '-'}`, 150, 44);
+    doc.text("Sesi Foto:", 150, 44);
+    if (eventDate) {
+      doc.text(formatDateTime(eventDate), 150, 50);
+    } else {
+      doc.text("-", 150, 50);
+    }
 
     // Bill To section
     doc.setFontSize(12);
@@ -591,18 +626,35 @@ const AdminOrders = () => {
       20,
       currentY + 37
     );
-    doc.text("Metode Pembayaran: Transfer Bank", 20, currentY + 44);
+
+    const isQris = selectedBank?.type === "qris";
+    doc.text(
+      `Metode Pembayaran: ${isQris ? "QRIS" : "Transfer Bank"}`,
+      20,
+      currentY + 44
+    );
+
+    let paymentDetailY = currentY + 51;
+    if (isQris && selectedBank?.qris_image_url) {
+      doc.text(
+        `URL QRIS: ${selectedBank.qris_image_url}`,
+        20,
+        paymentDetailY
+      );
+      paymentDetailY += 7;
+    }
+
     doc.text(
       `Biaya Booking: ${formatRupiah(item.booking_amount || 0)}`,
       20,
-      currentY + 51
+      paymentDetailY
     );
     doc.text(
       `Sisa Pembayaran: ${formatRupiah(
         (item.total_amount || 0) - (item.booking_amount || 0)
       )}`,
       20,
-      currentY + 58
+      paymentDetailY + 7
     );
 
     // Add bank account information
@@ -623,20 +675,39 @@ const AdminOrders = () => {
     doc.text(`Nomor Rekening: ${bankAccountNumber}`, 20, currentY + 75);
     doc.text(`Atas Nama: ${bankAccountName}`, 20, currentY + 82);
 
-    // Add user notes section if available
+    // Fixed booking notes
     let notesY = currentY + 95;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Note:", 20, notesY);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    notesY += 7;
+    const fixedNotes = [
+      "Datang minimal 1 jam sebelum waktu foto.",
+      "Sepatu / sandal wajib bersih, dipakai hanya saat sesi foto saja.",
+      "Wajib konfirmasi admin jika ada perubahan.",
+      "Dp hangus Jika melewati atau tidak hadir waktu sesi foto.",
+    ];
+    fixedNotes.forEach((line) => {
+      doc.text(`• ${line}`, 20, notesY);
+      notesY += 5;
+    });
+
+    // Add user notes section if available
     const notesText = item.notes || item.additional_requests || "";
     if (notesText && notesText.trim()) {
+      notesY += 10;
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text("Catatan:", 20, notesY);
+      doc.text("Catatan Tambahan:", 20, notesY);
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       notesY += 7;
 
       // Use full width for notes (same as address width calculation)
-      const actualUsableWidth = pageWidth - (margin * 2);
+      const actualUsableWidth = pageWidth - margin * 2;
       const notesLines = doc.splitTextToSize(notesText, actualUsableWidth);
       notesLines.forEach((line) => {
         doc.text(line, 20, notesY);
@@ -647,9 +718,7 @@ const AdminOrders = () => {
     }
 
     // Position thank you message at the bottom of the page
-    // Calculate the final Y position after all content
-    const finalContentY = notesText && notesText.trim() ? notesY : currentY + 95;
-    const thankYouY = finalContentY + 30; // Add 30mm space after the last content
+    const thankYouY = notesY + 10;
     
     // Set font for thank you message
     doc.setFontSize(12);

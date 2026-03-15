@@ -174,6 +174,14 @@ const ServiceDetail = () => {
     );
   }
 
+  const ctaTitleTemplate =
+    settings?.service_detail_cta_title_template || 'Siap Memesan {service_name}?';
+  const ctaTitle = ctaTitleTemplate.replace('{service_name}', service.name);
+
+  const ctaDescription =
+    settings?.service_detail_cta_description ||
+    'Jangan ragu untuk menghubungi kami. Tim kami siap membantu Anda merencanakan hari pernikahan yang sempurna.';
+
   return (
     <>
       <Helmet>
@@ -450,11 +458,10 @@ const ServiceDetail = () => {
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center" data-aos="fade-up">
               <h2 className="text-3xl sm: text-3xl lg:text-5xl font-bold mb-6">
-                Siap Memesan {service.name}?
+                {ctaTitle}
               </h2>
               <p className="text-lg sm:text-xl text-gray-300 mb-8">
-                Jangan ragu untuk menghubungi kami. Tim kami siap membantu Anda 
-                merencanakan hari pernikahan yang sempurna.
+                {ctaDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center" data-aos="fade-up" data-aos-delay="300">
                 <button
@@ -674,6 +681,8 @@ const PaymentInstructionsModal = ({ orderData, onClose }) => {
 };
 
 const BookingModal = ({ service, selectedItems, studioOptions, onClose, onOrderSuccess }) => {
+  const MIN_BOOKING_AMOUNT = 50000;
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -681,7 +690,7 @@ const BookingModal = ({ service, selectedItems, studioOptions, onClose, onOrderS
     address: '',
     wedding_date: '',
     studio: '',
-    booking_amount: 0,
+    booking_amount: MIN_BOOKING_AMOUNT,
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -715,6 +724,14 @@ const BookingModal = ({ service, selectedItems, studioOptions, onClose, onOrderS
 
     try {
       const totalAmount = calculateTotalPrice(selectedItems, service.base_price);
+      const bookingAmountNumber = parseFloat(formData.booking_amount);
+
+      if (isNaN(bookingAmountNumber) || bookingAmountNumber < MIN_BOOKING_AMOUNT) {
+        toast.error('Minimal nominal booking adalah Rp 50.000');
+        setIsSubmitting(false);
+        return;
+      }
+
       const orderData = {
         ...formData,
         // Kirim kedua field untuk kompatibilitas backend lama/baru
@@ -724,7 +741,7 @@ const BookingModal = ({ service, selectedItems, studioOptions, onClose, onOrderS
         base_price: service.base_price,
         selected_items: selectedItems,
         total_amount: totalAmount,
-        booking_amount: parseFloat(formData.booking_amount),
+        booking_amount: bookingAmountNumber,
         studio: formData.studio
       };
       
@@ -868,12 +885,13 @@ const BookingModal = ({ service, selectedItems, studioOptions, onClose, onOrderS
                       name="booking_amount"
                       value={formData.booking_amount}
                       onChange={handleInputChange}
-                      step="100000"
+                      min={MIN_BOOKING_AMOUNT}
+                      step="50000"
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Silakan isi jumlah booking (uang muka) sesuai kesepakatan.
+                      Minimal booking Rp 50.000. Silakan isi jumlah booking (uang muka) sesuai kesepakatan dengan admin.
                     </p>
                   </div>
 

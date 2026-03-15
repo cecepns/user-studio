@@ -12,6 +12,13 @@ const SETTINGS_KEYS = {
   payment_whatsapp_number: 'payment_whatsapp_number',
   services_all_package_label: 'services_all_package_label',
   studio_options: 'studio_options',
+  footer_brand_title: 'footer_brand_title',
+  footer_brand_subtitle: 'footer_brand_subtitle',
+  footer_brand_description: 'footer_brand_description',
+  footer_instagram_accounts: 'footer_instagram_accounts',
+  service_detail_cta_title_template: 'service_detail_cta_title_template',
+  service_detail_cta_description: 'service_detail_cta_description',
+  service_detail_info_notes: 'service_detail_info_notes',
 };
 
 const AdminSettings = () => {
@@ -231,6 +238,71 @@ const AdminSettings = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Branding Footer
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Brand
+                </label>
+                <input
+                  type="text"
+                  value={settings[SETTINGS_KEYS.footer_brand_title] || ''}
+                  onChange={(e) =>
+                    handleChange(SETTINGS_KEYS.footer_brand_title, e.target.value)
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subjudul Brand
+                </label>
+                <input
+                  type="text"
+                  value={settings[SETTINGS_KEYS.footer_brand_subtitle] || ''}
+                  onChange={(e) =>
+                    handleChange(SETTINGS_KEYS.footer_brand_subtitle, e.target.value)
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deskripsi Singkat
+              </label>
+              <textarea
+                rows={3}
+                value={settings[SETTINGS_KEYS.footer_brand_description] || ''}
+                onChange={(e) =>
+                  handleChange(SETTINGS_KEYS.footer_brand_description, e.target.value)
+                }
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="Deskripsi singkat yang tampil di footer."
+              />
+            </div>
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Akun Instagram (satu per baris, format: @handle|https://link)
+              </label>
+              <textarea
+                rows={4}
+                value={settings[SETTINGS_KEYS.footer_instagram_accounts] || ''}
+                onChange={(e) =>
+                  handleChange(SETTINGS_KEYS.footer_instagram_accounts, e.target.value)
+                }
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="@userwedding|https://www.instagram.com/userwedding"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Akan ditampilkan sebagai daftar akun Instagram di footer.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
               WhatsApp & Label Layanan
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -298,6 +370,65 @@ const AdminSettings = () => {
               <p className="text-xs text-gray-500 mt-1">
                 Daftar pilihan studio yang muncul saat booking layanan.
               </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Halaman Detail Layanan
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Judul CTA (gunakan &#123;service_name&#125; untuk nama layanan)
+                </label>
+                <input
+                  type="text"
+                  value={settings[SETTINGS_KEYS.service_detail_cta_title_template] || ''}
+                  onChange={(e) =>
+                    handleChange(
+                      SETTINGS_KEYS.service_detail_cta_title_template,
+                      e.target.value
+                    )
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Siap Memesan {service_name}?"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deskripsi CTA
+                </label>
+                <textarea
+                  rows={3}
+                  value={settings[SETTINGS_KEYS.service_detail_cta_description] || ''}
+                  onChange={(e) =>
+                    handleChange(
+                      SETTINGS_KEYS.service_detail_cta_description,
+                      e.target.value
+                    )
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Jangan ragu untuk menghubungi kami..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Informasi Penting (satu baris per poin)
+                </label>
+                <textarea
+                  rows={4}
+                  value={settings[SETTINGS_KEYS.service_detail_info_notes] || ''}
+                  onChange={(e) =>
+                    handleChange(
+                      SETTINGS_KEYS.service_detail_info_notes,
+                      e.target.value
+                    )
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Datang minimal 1 jam sebelum waktu foto..."
+                />
+              </div>
             </div>
           </section>
 

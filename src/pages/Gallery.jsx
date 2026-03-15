@@ -180,7 +180,7 @@ const Gallery = () => {
               <img
                 src={selectedImage.image_url}
                 alt={selectedImage.title}
-                className="max-w-full max-h-full object-contain rounded-lg"
+                className="w-auto h-auto max-w-full max-h-[90vh] object-contain rounded-lg mx-auto"
               />
               <div className="absolute bottom-4 left-4 text-white">
                 <span className="inline-block px-3 py-1 bg-primary-500 rounded-full text-sm font-medium mb-2">
