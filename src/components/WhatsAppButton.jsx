@@ -21,7 +21,7 @@ const WhatsAppButton = () => {
 
   const handleWhatsAppClick = () => {
     const phoneNumber = settings?.payment_whatsapp_number || '6289646829459';
-    const message = 'Halo! Saya tertarik dengan layanan pernikahan Anda. Bisa saya tanya-tanya lebih lanjut?';
+    const message = 'Halo! Saya tertarik dengan layanan foto Anda. Bisa saya tanya-tanya lebih lanjut?';
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
