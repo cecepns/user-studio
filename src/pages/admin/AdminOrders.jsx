@@ -45,7 +45,7 @@ const AdminOrders = () => {
     const fetchSettings = async () => {
       try {
         const response = await fetch(
-          "https://api-inventory.isavralabel.com/user-studio/api/settings"
+          "https://api.kingcreativestudio.my.id/user-studio/api/settings"
         );
         if (!response.ok) return;
         const data = await response.json();
@@ -65,7 +65,7 @@ const AdminOrders = () => {
   const fetchPaymentMethods = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/payment-methods"
+        "https://api.kingcreativestudio.my.id/user-studio/api/payment-methods"
       );
       const data = await response.json();
       setPaymentMethods(data);
@@ -81,7 +81,7 @@ const AdminOrders = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=pending`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=pending`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
@@ -125,7 +125,7 @@ const AdminOrders = () => {
     setCalendarLoading(true);
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=1&limit=5000&status=pending`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders?page=1&limit=5000&status=pending`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
@@ -162,7 +162,7 @@ const AdminOrders = () => {
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders/${orderId}/status`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders/${orderId}/status`,
         {
           method: "PUT",
           headers: {
@@ -238,7 +238,7 @@ const AdminOrders = () => {
 
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders/${orderId}`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders/${orderId}`,
         {
           method: "DELETE",
           headers: {
@@ -407,7 +407,7 @@ const AdminOrders = () => {
 
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders/${editingItem.id}/booking-amount`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders/${editingItem.id}/booking-amount`,
         {
           method: "PUT",
           headers: {

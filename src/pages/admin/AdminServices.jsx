@@ -32,7 +32,7 @@ const AdminServices = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/services');
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/services');
       const data = await response.json();
       setServices(data);
     } catch (error) {
@@ -42,7 +42,7 @@ const AdminServices = () => {
 
   const fetchAvailableItems = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/items');
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/items');
       const data = await response.json();
       setAvailableItems(data);
     } catch (error) {
@@ -52,7 +52,7 @@ const AdminServices = () => {
 
   const fetchServiceItems = async (serviceId) => {
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/services/${serviceId}/items`);
+      const response = await fetch(`https://api.kingcreativestudio.my.id/user-studio/api/services/${serviceId}/items`);
       const data = await response.json();
       setServiceItems(data);
     } catch (error) {
@@ -63,8 +63,8 @@ const AdminServices = () => {
   const handleServiceSubmit = async (serviceData) => {
     try {
       const url = serviceData.id 
-        ? `https://api-inventory.isavralabel.com/user-studio/api/services/${serviceData.id}`
-        : 'https://api-inventory.isavralabel.com/user-studio/api/services';
+        ? `https://api.kingcreativestudio.my.id/user-studio/api/services/${serviceData.id}`
+        : 'https://api.kingcreativestudio.my.id/user-studio/api/services';
       
       const method = serviceData.id ? 'PUT' : 'POST';
       
@@ -125,7 +125,7 @@ const AdminServices = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/services/${id}`, {
+      const response = await fetch(`https://api.kingcreativestudio.my.id/user-studio/api/services/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
@@ -146,7 +146,7 @@ const AdminServices = () => {
 
   const handleAddItemToService = async (itemData) => {
     try {
-      const url = `https://api-inventory.isavralabel.com/user-studio/api/services/${selectedService.id}/items`;
+      const url = `https://api.kingcreativestudio.my.id/user-studio/api/services/${selectedService.id}/items`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -173,7 +173,7 @@ const AdminServices = () => {
 
   const handleUpdateServiceItem = async (itemData) => {
     try {
-      const url = `https://api-inventory.isavralabel.com/user-studio/api/service-items/${editingServiceItem.id}`;
+      const url = `https://api.kingcreativestudio.my.id/user-studio/api/service-items/${editingServiceItem.id}`;
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -233,7 +233,7 @@ const AdminServices = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`https://api-inventory.isavralabel.com/user-studio/api/service-items/${id}`, {
+      const response = await fetch(`https://api.kingcreativestudio.my.id/user-studio/api/service-items/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`

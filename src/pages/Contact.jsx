@@ -22,7 +22,7 @@ const Contact = () => {
 
   const fetchHeroContent = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/content-sections/contact_hero_section');
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/content-sections/contact_hero_section');
       if (response.ok) {
         const data = await response.json();
         setHeroContent(data);
@@ -34,7 +34,7 @@ const Contact = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/settings');
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/settings');
       if (!response.ok) return;
       const data = await response.json();
       setSettings(data);
@@ -54,7 +54,7 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/contact', {
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

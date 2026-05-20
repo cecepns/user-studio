@@ -14,7 +14,7 @@ const PaymentInstructions = ({ totalAmount, bookingAmount, onComplete, onBack, o
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/payment-methods');
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/payment-methods');
       const data = await response.json();
       setPaymentMethods(data);
       if (data.length > 0) {
@@ -32,7 +32,7 @@ const PaymentInstructions = ({ totalAmount, bookingAmount, onComplete, onBack, o
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/settings');
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/settings');
       if (!response.ok) return;
       const data = await response.json();
       setSettings(data);

@@ -42,7 +42,7 @@ const AdminOrdersHistory = () => {
   const fetchPaymentMethods = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/payment-methods"
+        "https://api.kingcreativestudio.my.id/user-studio/api/payment-methods"
       );
       const data = await response.json();
       setPaymentMethods(data);
@@ -58,7 +58,7 @@ const AdminOrdersHistory = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=confirmed,completed,cancelled`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders?page=${ordersPagination.page}&limit=${ordersPagination.limit}&status=confirmed,completed,cancelled`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
@@ -113,7 +113,7 @@ const AdminOrdersHistory = () => {
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders/${orderId}/status`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders/${orderId}/status`,
         {
           method: "PUT",
           headers: {
@@ -175,7 +175,7 @@ const AdminOrdersHistory = () => {
 
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders/${orderId}`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders/${orderId}`,
         {
           method: "DELETE",
           headers: {
@@ -250,7 +250,7 @@ const AdminOrdersHistory = () => {
 
     try {
       const response = await fetch(
-        `https://api-inventory.isavralabel.com/user-studio/api/orders/${editingItem.id}/booking-amount`,
+        `https://api.kingcreativestudio.my.id/user-studio/api/orders/${editingItem.id}/booking-amount`,
         {
           method: "PUT",
           headers: {

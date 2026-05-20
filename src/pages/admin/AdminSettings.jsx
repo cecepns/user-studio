@@ -33,7 +33,7 @@ const AdminSettings = () => {
   const fetchSettings = async () => {
     try {
       const response = await fetch(
-        'https://api-inventory.isavralabel.com/user-studio/api/settings'
+        'https://api.kingcreativestudio.my.id/user-studio/api/settings'
       );
       if (!response.ok) {
         throw new Error('Failed to fetch settings');
@@ -84,7 +84,7 @@ const AdminSettings = () => {
     }
 
     const response = await fetch(
-      `https://api-inventory.isavralabel.com/user-studio/api/settings/${encodeURIComponent(
+      `https://api.kingcreativestudio.my.id/user-studio/api/settings/${encodeURIComponent(
         key
       )}`,
       {

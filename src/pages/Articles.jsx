@@ -11,7 +11,7 @@ const Articles = () => {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('https://api-inventory.isavralabel.com/user-studio/api/articles');
+      const response = await fetch('https://api.kingcreativestudio.my.id/user-studio/api/articles');
       const data = await response.json();
       setArticles(data);
     } catch (error) {

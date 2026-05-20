@@ -24,7 +24,7 @@ const Services = () => {
   const fetchServices = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/services"
+        "https://api.kingcreativestudio.my.id/user-studio/api/services"
       );
       const data = await response.json();
       setServices(data);
@@ -36,7 +36,7 @@ const Services = () => {
   const fetchHeroContent = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/services_hero_section"
+        "https://api.kingcreativestudio.my.id/user-studio/api/content-sections/services_hero_section"
       );
       if (response.ok) {
         const data = await response.json();
@@ -50,7 +50,7 @@ const Services = () => {
   const fetchSettings = async () => {
     try {
       const response = await fetch(
-        'https://api-inventory.isavralabel.com/user-studio/api/settings'
+        'https://api.kingcreativestudio.my.id/user-studio/api/settings'
       );
       if (!response.ok) return;
       const data = await response.json();

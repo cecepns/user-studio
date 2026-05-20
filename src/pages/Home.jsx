@@ -32,7 +32,7 @@ const Home = () => {
   const fetchHeroContent = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/hero_section"
+        "https://api.kingcreativestudio.my.id/user-studio/api/content-sections/hero_section"
       );
       if (response.ok) {
         const data = await response.json();
@@ -46,7 +46,7 @@ const Home = () => {
   const fetchServicesContent = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/services_preview_section"
+        "https://api.kingcreativestudio.my.id/user-studio/api/content-sections/services_preview_section"
       );
       if (response.ok) {
         const data = await response.json();
@@ -60,7 +60,7 @@ const Home = () => {
   const fetchServiceCards = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/service-cards"
+        "https://api.kingcreativestudio.my.id/user-studio/api/service-cards"
       );
       if (response.ok) {
         const data = await response.json();
@@ -74,7 +74,7 @@ const Home = () => {
   const fetchGalleryContent = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/gallery_section"
+        "https://api.kingcreativestudio.my.id/user-studio/api/content-sections/gallery_section"
       );
       if (response.ok) {
         const data = await response.json();
@@ -88,7 +88,7 @@ const Home = () => {
   const fetchGalleryImages = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/gallery/images?featured=true"
+        "https://api.kingcreativestudio.my.id/user-studio/api/gallery/images?featured=true"
       );
       if (response.ok) {
         const data = await response.json();
@@ -103,7 +103,7 @@ const Home = () => {
   const fetchCtaContent = async () => {
     try {
       const response = await fetch(
-        "https://api-inventory.isavralabel.com/user-studio/api/content-sections/home_cta_section"
+        "https://api.kingcreativestudio.my.id/user-studio/api/content-sections/home_cta_section"
       );
       if (response.ok) {
         const data = await response.json();
